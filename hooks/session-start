@@ -23,7 +23,7 @@ fi
 scaffolded_files=()
 appended_entries=()
 stale_files=()
-plugins_installed=false
+plugins_missing=false
 
 # --- Portable checksum helper ---
 checksum() {
@@ -44,7 +44,7 @@ if grep -q '"superpowers@claude-plugins-official"' "${PROJECT_ROOT}/.claude/sett
     if [ -f "$INSTALLED_PLUGINS" ]; then
         if ! grep -q '"superpowers@claude-plugins-official"' "$INSTALLED_PLUGINS" 2>/dev/null; then
             # TODO: auto-install command TBD — depends on Claude Code plugin CLI
-            plugins_installed=true
+            plugins_missing=true
         fi
     fi
 fi
@@ -159,8 +159,8 @@ if [ ${#stale_files[@]} -gt 0 ]; then
     summary+=$'Run with PRIMER_UPDATE=1 to overwrite, then review with git diff.\n'
 fi
 
-if [ "$plugins_installed" = true ]; then
-    summary+=$'\nPlugins were installed. Please restart your session.\n'
+if [ "$plugins_missing" = true ]; then
+    summary+=$'\nRequired plugins are missing. Install superpowers: claude plugins install superpowers@claude-plugins-official\nThen restart your session.\n'
 fi
 
 # Output as JSON for Claude Code hook system
@@ -179,10 +179,10 @@ if [ -n "$summary" ]; then
 
     if [ -n "${CURSOR_PLUGIN_ROOT:-}" ]; then
         printf '{\n  "additional_context": "%s"\n}\n' "$escaped"
-    elif [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -z "${COPILOT_CLI:-}" ]; then
-        printf '{\n  "hookSpecificOutput": {\n    "hookEventName": "SessionStart",\n    "additionalContext": "%s"\n  }\n}\n' "$escaped"
-    else
+    elif [ -n "${COPILOT_CLI:-}" ]; then
         printf '{\n  "additionalContext": "%s"\n}\n' "$escaped"
+    else
+        printf '{\n  "hookSpecificOutput": {\n    "hookEventName": "SessionStart",\n    "additionalContext": "%s"\n  }\n}\n' "$escaped"
     fi
 fi
 
