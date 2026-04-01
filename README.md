@@ -1,41 +1,39 @@
-# Claude Template
+# Primer
 
-A starter template for projects using [Claude Code](https://docs.anthropic.com/en/docs/claude-code).
+A Claude Code plugin that bootstraps projects with an opinionated `.claude/` structure and conventions.
 
-Everything Claude needs to know about your project lives right here.
+## What You Get
 
-## Anatomy of the `.claude/` Folder
+- **Rules:** Conventional commits, git workflow, repo setup, rule style, superpowers, ADR conventions
+- **Structure:** `.claude/` with skills, agents, and commands directories
+- **Docs:** `docs/superpowers/` with plans, specs, and ADR directories
+- **Plugin dependencies:** Superpowers plugin auto-installed
+- **`.gitignore` entries:** Personal overrides and worktrees excluded
 
+## Install
+
+```bash
+claude plugins add mattiasthalen/primer
 ```
-your-project/
-├── CLAUDE.md                 # Team instructions, committed
-├── CLAUDE.local.md           # Personal overrides, gitignored
-│
-├── .claude/
-│   ├── settings.json         # Permissions + config, committed
-│   ├── settings.local.json   # Personal permissions, gitignored
-│   │
-│   ├── commands/             # Custom slash commands
-│   │   ├── review.md         #   /project:review
-│   │   ├── fix-issue.md      #   /project:fix-issue
-│   │   └── deploy.md         #   /project:deploy
-│   │
-│   ├── rules/                # Modular instruction files
-│   │   ├── code-style.md
-│   │   ├── testing.md
-│   │   └── api-conventions.md
-│   │
-│   ├── skills/               # Auto-invoked workflows
-│   │   ├── security-review/
-│   │   │   └── SKILL.md
-│   │   └── deploy/
-│   │       └── SKILL.md
-│   │
-│   └── agents/               # Subagent personas
-│       ├── code-reviewer.md
-│       └── security-auditor.md
-│
-└── docs/superpowers/         # Superpowers plugin
-    ├── plans/                #   Implementation plans
-    └── specs/                #   Design specs
+
+Then enable it in your project's `.claude/settings.json`:
+
+```json
+{
+  "enabledPlugins": {
+    "primer@primer": true
+  }
+}
 ```
+
+Start a new Claude Code session. Primer will scaffold missing files and report what it did.
+
+## Updating Files
+
+When primer updates its templates, the session-start hook will warn about stale files. To update:
+
+```bash
+PRIMER_UPDATE=1 claude
+```
+
+Then review changes with `git diff`.
