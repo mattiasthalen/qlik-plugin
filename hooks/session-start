@@ -37,8 +37,10 @@ checksum() {
     fi
 }
 
-# --- Phase 1: Install missing plugins ---
-# Only check installation if superpowers is referenced in project settings
+# --- Phase 1: Detect missing plugins ---
+# NOTE: This phase is a placeholder. On first bootstrap, settings.json doesn't
+# exist yet (Phase 2 scaffolds it), so this check is skipped. Once Claude Code
+# provides a plugin install CLI, this should auto-install missing dependencies.
 if grep -q '"superpowers@claude-plugins-official"' "${PROJECT_ROOT}/.claude/settings.json" 2>/dev/null; then
     INSTALLED_PLUGINS="${HOME}/.claude/plugins/installed_plugins.json"
     if [ -f "$INSTALLED_PLUGINS" ]; then
@@ -66,7 +68,7 @@ if [ -d "$TEMPLATES_DIR" ]; then
             cp "$template_file" "$target_file"
             scaffolded_files+=("$relative_path")
         fi
-    done < <(find "$TEMPLATES_DIR" -type f -print0)
+    done < <(find "$TEMPLATES_DIR" -type f -print0 | sort -z)
 fi
 
 # --- Phase 3: Smart-append .gitignore ---
@@ -85,7 +87,9 @@ if [ -f "$GITIGNORE_TEMPLATE" ]; then
         done < "$GITIGNORE_TEMPLATE"
 
         if [ ${#appended_entries[@]} -gt 0 ]; then
-            printf '\n# primer\n' >> "$GITIGNORE_TARGET"
+            if ! grep -qxF "# primer" "$GITIGNORE_TARGET" 2>/dev/null; then
+                printf '\n# primer\n' >> "$GITIGNORE_TARGET"
+            fi
             for entry in "${appended_entries[@]}"; do
                 printf '%s\n' "$entry" >> "$GITIGNORE_TARGET"
             done
@@ -108,7 +112,7 @@ if [ -d "$TEMPLATES_DIR" ] && [ "${PRIMER_UPDATE:-}" != "1" ]; then
                 stale_files+=("$relative_path")
             fi
         fi
-    done < <(find "$TEMPLATES_DIR" -type f -print0)
+    done < <(find "$TEMPLATES_DIR" -type f -print0 | sort -z)
 fi
 
 # --- Phase 4b: Overwrite stale files if PRIMER_UPDATE=1 ---
@@ -127,7 +131,7 @@ if [ "${PRIMER_UPDATE:-}" = "1" ] && [ -d "$TEMPLATES_DIR" ]; then
                 stale_files+=("$relative_path (updated)")
             fi
         fi
-    done < <(find "$TEMPLATES_DIR" -type f -print0)
+    done < <(find "$TEMPLATES_DIR" -type f -print0 | sort -z)
 fi
 
 # --- Phase 5: Write version marker ---
