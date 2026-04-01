@@ -1,0 +1,12 @@
+{
+  "name": "primer",
+  "owner": {
+    "name": "Mattias Thal\u00e9n"
+  },
+  "plugins": [
+    {
+      "name": "primer",
+      "source": "./"
+    }
+  ]
+}

@@ -1,0 +1,193 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+# Detect project root (where Claude Code is running)
+PROJECT_ROOT="$(pwd)"
+
+# Read plugin version from plugin.json
+PLUGIN_VERSION=$(grep -o '"version": *"[^"]*"' "${PLUGIN_ROOT}/.claude-plugin/plugin.json" | head -1 | cut -d'"' -f4)
+
+# --- Phase 0: Version check (early exit) ---
+VERSION_FILE="${PROJECT_ROOT}/.claude/.primer-version"
+if [ -f "$VERSION_FILE" ]; then
+    CURRENT_VERSION=$(cat "$VERSION_FILE" 2>/dev/null || echo "")
+    if [ "$CURRENT_VERSION" = "$PLUGIN_VERSION" ]; then
+        exit 0
+    fi
+fi
+
+# --- Tracking variables ---
+scaffolded_files=()
+appended_entries=()
+stale_files=()
+plugins_missing=false
+
+# --- Portable checksum helper ---
+checksum() {
+    if command -v md5sum >/dev/null 2>&1; then
+        md5sum "$1" 2>/dev/null | cut -d' ' -f1
+    elif command -v md5 >/dev/null 2>&1; then
+        md5 -q "$1" 2>/dev/null
+    else
+        # Fallback: cksum is POSIX
+        cksum "$1" 2>/dev/null | cut -d' ' -f1
+    fi
+}
+
+# --- Phase 1: Detect missing plugins ---
+# NOTE: This phase is a placeholder. On first bootstrap, settings.json doesn't
+# exist yet (Phase 2 scaffolds it), so this check is skipped. Once Claude Code
+# provides a plugin install CLI, this should auto-install missing dependencies.
+if grep -q '"superpowers@claude-plugins-official"' "${PROJECT_ROOT}/.claude/settings.json" 2>/dev/null; then
+    INSTALLED_PLUGINS="${HOME}/.claude/plugins/installed_plugins.json"
+    if [ -f "$INSTALLED_PLUGINS" ]; then
+        if ! grep -q '"superpowers@claude-plugins-official"' "$INSTALLED_PLUGINS" 2>/dev/null; then
+            # TODO: auto-install command TBD — depends on Claude Code plugin CLI
+            plugins_missing=true
+        fi
+    fi
+fi
+
+# --- Phase 2: Scaffold missing files ---
+TEMPLATES_DIR="${PLUGIN_ROOT}/templates"
+if [ -d "$TEMPLATES_DIR" ]; then
+    while IFS= read -r -d '' template_file; do
+        relative_path="${template_file#${TEMPLATES_DIR}/}"
+        target_file="${PROJECT_ROOT}/${relative_path}"
+
+        # Skip .gitignore — handled in Phase 3
+        if [ "$relative_path" = ".gitignore" ]; then
+            continue
+        fi
+
+        if [ ! -f "$target_file" ]; then
+            mkdir -p "$(dirname "$target_file")"
+            cp "$template_file" "$target_file"
+            scaffolded_files+=("$relative_path")
+        fi
+    done < <(find "$TEMPLATES_DIR" -type f -print0 | sort -z)
+fi
+
+# --- Phase 3: Smart-append .gitignore ---
+GITIGNORE_TEMPLATE="${TEMPLATES_DIR}/.gitignore"
+GITIGNORE_TARGET="${PROJECT_ROOT}/.gitignore"
+if [ -f "$GITIGNORE_TEMPLATE" ]; then
+    if [ ! -f "$GITIGNORE_TARGET" ]; then
+        cp "$GITIGNORE_TEMPLATE" "$GITIGNORE_TARGET"
+        scaffolded_files+=(".gitignore")
+    else
+        while IFS= read -r entry; do
+            [[ -z "$entry" || "$entry" =~ ^# ]] && continue
+            if ! grep -qxF "$entry" "$GITIGNORE_TARGET" 2>/dev/null; then
+                appended_entries+=("$entry")
+            fi
+        done < "$GITIGNORE_TEMPLATE"
+
+        if [ ${#appended_entries[@]} -gt 0 ]; then
+            if ! grep -qxF "# primer" "$GITIGNORE_TARGET" 2>/dev/null; then
+                printf '\n# primer\n' >> "$GITIGNORE_TARGET"
+            fi
+            for entry in "${appended_entries[@]}"; do
+                printf '%s\n' "$entry" >> "$GITIGNORE_TARGET"
+            done
+        fi
+    fi
+fi
+
+# --- Phase 4: Detect stale files ---
+if [ -d "$TEMPLATES_DIR" ] && [ "${PRIMER_UPDATE:-}" != "1" ]; then
+    while IFS= read -r -d '' template_file; do
+        relative_path="${template_file#${TEMPLATES_DIR}/}"
+        target_file="${PROJECT_ROOT}/${relative_path}"
+
+        [[ "$relative_path" = ".gitignore" ]] && continue
+
+        if [ -f "$target_file" ]; then
+            template_sum=$(checksum "$template_file")
+            target_sum=$(checksum "$target_file")
+            if [ "$template_sum" != "$target_sum" ]; then
+                stale_files+=("$relative_path")
+            fi
+        fi
+    done < <(find "$TEMPLATES_DIR" -type f -print0 | sort -z)
+fi
+
+# --- Phase 4b: Overwrite stale files if PRIMER_UPDATE=1 ---
+if [ "${PRIMER_UPDATE:-}" = "1" ] && [ -d "$TEMPLATES_DIR" ]; then
+    while IFS= read -r -d '' template_file; do
+        relative_path="${template_file#${TEMPLATES_DIR}/}"
+        target_file="${PROJECT_ROOT}/${relative_path}"
+
+        [[ "$relative_path" = ".gitignore" ]] && continue
+
+        if [ -f "$target_file" ]; then
+            template_sum=$(checksum "$template_file")
+            target_sum=$(checksum "$target_file")
+            if [ "$template_sum" != "$target_sum" ]; then
+                cp "$template_file" "$target_file"
+                stale_files+=("$relative_path (updated)")
+            fi
+        fi
+    done < <(find "$TEMPLATES_DIR" -type f -print0 | sort -z)
+fi
+
+# --- Phase 5: Write version marker ---
+mkdir -p "${PROJECT_ROOT}/.claude"
+printf '%s' "$PLUGIN_VERSION" > "$VERSION_FILE"
+
+# --- Phase 5b: Output summary ---
+summary=""
+
+if [ ${#scaffolded_files[@]} -gt 0 ]; then
+    summary+=$'Scaffolded files:\n'
+    for f in "${scaffolded_files[@]}"; do
+        summary+=$'  + '"${f}"$'\n'
+    done
+fi
+
+if [ ${#appended_entries[@]} -gt 0 ]; then
+    summary+=$'Appended to .gitignore:\n'
+    for e in "${appended_entries[@]}"; do
+        summary+=$'  + '"${e}"$'\n'
+    done
+fi
+
+if [ ${#stale_files[@]} -gt 0 ]; then
+    summary+=$'Stale files (template differs from project):\n'
+    for f in "${stale_files[@]}"; do
+        summary+=$'  ~ '"${f}"$'\n'
+    done
+    summary+=$'Run with PRIMER_UPDATE=1 to overwrite, then review with git diff.\n'
+fi
+
+if [ "$plugins_missing" = true ]; then
+    summary+=$'\nRequired plugins are missing. Install superpowers: claude plugins install superpowers@claude-plugins-official\nThen restart your session.\n'
+fi
+
+# Output as JSON for Claude Code hook system
+if [ -n "$summary" ]; then
+    escape_for_json() {
+        local s="$1"
+        s="${s//\\/\\\\}"
+        s="${s//\"/\\\"}"
+        s="${s//$'\n'/\\n}"
+        s="${s//$'\r'/\\r}"
+        s="${s//$'\t'/\\t}"
+        printf '%s' "$s"
+    }
+
+    escaped=$(escape_for_json "$summary")
+
+    if [ -n "${CURSOR_PLUGIN_ROOT:-}" ]; then
+        printf '{\n  "additional_context": "%s"\n}\n' "$escaped"
+    elif [ -n "${COPILOT_CLI:-}" ]; then
+        printf '{\n  "additionalContext": "%s"\n}\n' "$escaped"
+    else
+        printf '{\n  "hookSpecificOutput": {\n    "hookEventName": "SessionStart",\n    "additionalContext": "%s"\n  }\n}\n' "$escaped"
+    fi
+fi
+
+exit 0
