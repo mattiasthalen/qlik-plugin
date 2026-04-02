@@ -24,7 +24,7 @@ fi
 scaffolded_files=()
 appended_entries=()
 stale_files=()
-plugins_missing=false
+missing_plugins=()
 
 # --- Portable checksum helper ---
 checksum() {
@@ -38,17 +38,40 @@ checksum() {
     fi
 }
 
-# --- Phase 1: Detect missing plugins ---
-# NOTE: This phase is a placeholder. On first bootstrap, settings.json doesn't
-# exist yet (Phase 2 scaffolds it), so this check is skipped. Once Claude Code
-# provides a plugin install CLI, this should auto-install missing dependencies.
-if grep -q '"superpowers@claude-plugins-official"' "${PROJECT_ROOT}/.claude/settings.json" 2>/dev/null; then
-    INSTALLED_PLUGINS="${HOME}/.claude/plugins/installed_plugins.json"
-    if [ -f "$INSTALLED_PLUGINS" ]; then
-        if ! grep -q '"superpowers@claude-plugins-official"' "$INSTALLED_PLUGINS" 2>/dev/null; then
-            # TODO: auto-install command TBD — depends on Claude Code plugin CLI
-            plugins_missing=true
-        fi
+# --- Phase 1: Check required plugins are installed for this project ---
+TEMPLATE_SETTINGS="${PLUGIN_ROOT}/templates/.claude/settings.json"
+INSTALLED_PLUGINS="${HOME}/.claude/plugins/installed_plugins.json"
+
+if [ -f "$TEMPLATE_SETTINGS" ]; then
+    # Extract plugin names from enabledPlugins keys
+    required_plugins=()
+    while IFS= read -r plugin_name; do
+        [ -n "$plugin_name" ] && required_plugins+=("$plugin_name")
+    done < <(grep -o '"[^"]*"[[:space:]]*:[[:space:]]*true' "$TEMPLATE_SETTINGS" | grep -v '"enabledPlugins"' | cut -d'"' -f2)
+
+    if [ ${#required_plugins[@]} -gt 0 ] && [ -f "$INSTALLED_PLUGINS" ]; then
+        for plugin in "${required_plugins[@]}"; do
+            # Check for a project-scoped entry matching PROJECT_ROOT
+            # Look for the plugin key, then scan its entries for scope+projectPath match
+            if ! awk -v plugin="\"$plugin\"" -v proj="\"$PROJECT_ROOT\"" '
+                BEGIN { in_plugin=0; in_entry=0; found=0 }
+                $0 ~ plugin":" { in_plugin=1; next }
+                in_plugin && /^\s*\]/ { in_plugin=0 }
+                in_plugin && /\{/ { in_entry=1; scope_match=0; path_match=0 }
+                in_plugin && in_entry && /"scope".*"project"/ { scope_match=1 }
+                in_plugin && in_entry && /"projectPath"/ && $0 ~ proj { path_match=1 }
+                in_plugin && in_entry && /\}/ {
+                    if (scope_match && path_match) { found=1; exit }
+                    in_entry=0
+                }
+                END { exit !found }
+            ' "$INSTALLED_PLUGINS" 2>/dev/null; then
+                missing_plugins+=("$plugin")
+            fi
+        done
+    elif [ ${#required_plugins[@]} -gt 0 ] && [ ! -f "$INSTALLED_PLUGINS" ]; then
+        # No installed_plugins.json at all — all plugins are missing
+        missing_plugins=("${required_plugins[@]}")
     fi
 fi
 
@@ -166,8 +189,12 @@ if [ ${#stale_files[@]} -gt 0 ]; then
     summary+=$'Run with PRIMER_UPDATE=1 to overwrite, then review with git diff.\n'
 fi
 
-if [ "$plugins_missing" = true ]; then
-    summary+=$'\nRequired plugins are missing. Install superpowers: claude plugins install superpowers@claude-plugins-official\nThen restart your session.\n'
+if [ ${#missing_plugins[@]} -gt 0 ]; then
+    summary+=$'\nRequired plugins are not installed for this project:\n'
+    for plugin in "${missing_plugins[@]}"; do
+        summary+=$'  - '"${plugin}"$'\n'
+    done
+    summary+=$'Run: claude plugins install <plugin-name> --scope project\nThen restart your session.\n'
 fi
 
 # Output as JSON for Claude Code hook system
