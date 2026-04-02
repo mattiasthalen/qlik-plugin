@@ -55,11 +55,11 @@ if [ -f "$TEMPLATE_SETTINGS" ]; then
             # Look for the plugin key, then scan its entries for scope+projectPath match
             if ! awk -v plugin="\"$plugin\"" -v proj="\"$PROJECT_ROOT\"" '
                 BEGIN { in_plugin=0; in_entry=0; found=0 }
-                $0 ~ plugin":" { in_plugin=1; next }
+                index($0, plugin ":") { in_plugin=1; next }
                 in_plugin && /^\s*\]/ { in_plugin=0 }
                 in_plugin && /\{/ { in_entry=1; scope_match=0; path_match=0 }
                 in_plugin && in_entry && /"scope".*"project"/ { scope_match=1 }
-                in_plugin && in_entry && /"projectPath"/ && $0 ~ proj { path_match=1 }
+                in_plugin && in_entry && /"projectPath"/ && index($0, proj) { path_match=1 }
                 in_plugin && in_entry && /\}/ {
                     if (scope_match && path_match) { found=1; exit }
                     in_entry=0
