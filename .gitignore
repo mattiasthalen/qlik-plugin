@@ -4,3 +4,19 @@ CLAUDE.local.md
 
 # Git worktrees
 .worktrees/
+
+# IDE
+.idea/
+.vscode/
+
+# WSL device files
+.bash_profile
+.bashrc
+.profile
+.zprofile
+.zshrc
+.gitconfig
+.ripgreprc
+
+# Misc
+.gitmodules
