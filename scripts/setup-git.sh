@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-gh auth login
+gh auth login -h github.com -s admin:ssh_signing_key
 gh auth setup-git
 
 ssh-keygen -t ed25519 -C "$(git config --global user.email)" -N "" -f ~/.ssh/id_ed25519_signing
