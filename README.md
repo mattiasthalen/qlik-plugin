@@ -1,39 +1,36 @@
 # Primer
 
-A Claude Code plugin that bootstraps projects with an opinionated `.claude/` structure and conventions.
+GitHub template repository for bootstrapping projects with an opinionated devcontainer, Claude Code configuration, and self-updating sync mechanism.
 
-## What You Get
+## Usage
 
-- **Rules:** Conventional commits, git workflow, repo setup, rule style, superpowers, ADR conventions
-- **Structure:** `.claude/` with skills, agents, and commands directories
-- **Docs:** `docs/superpowers/` with plans, specs, and ADR directories
-- **Plugin dependencies:** Superpowers plugin auto-installed
-- **`.gitignore` entries:** Personal overrides and worktrees excluded
+1. Click **"Use this template"** on GitHub to create a new repo
+2. Open in a devcontainer (VS Code, Codespaces, etc.)
+3. Run `just setup-git` for GitHub auth and SSH commit signing
+4. Edit `CLAUDE.md` to describe your project and add constraints
 
-## Install
+## Customizing
 
-```bash
-claude plugins add mattiasthalen/primer
-```
+- Add language features to `.devcontainer/devcontainer.json` (Python, Go, Rust, etc. — commented-out examples included)
+- Add project-specific constraints to `CLAUDE.md` using the "DON'T x — DO y" pattern
+- Add detailed rules to `.claude/rules/`
 
-Then enable it in your project's `.claude/settings.json`:
+## Syncing with upstream
 
-```json
-{
-  "enabledPlugins": {
-    "primer@primer": true
-  }
-}
-```
-
-Start a new Claude Code session. Primer will scaffold missing files and report what it did.
-
-## Updating Files
-
-When primer updates its templates, the session-start hook will warn about stale files. To update:
+Pull template updates into your project:
 
 ```bash
-PRIMER_UPDATE=1 claude
+just sync-template
 ```
 
-Then review changes with `git diff`.
+This uses git merge, so your project-specific changes are preserved and conflicts surface naturally.
+
+## What's included
+
+- **Devcontainer** with Claude Code, Node, GitHub CLI, just, lefthook, and direnv
+- **Claude Code config** with [superpowers](https://github.com/claude-plugins-official/superpowers) plugin, rules, and lint skill
+- **Conventional commits** enforced via `.claude/rules/conventional-commits.md`
+- **Functional programming** conventions via `.claude/rules/functional-programming.md`
+- **Git workflow** rules (PRs, draft-first, no squash) via `.claude/rules/git-workflow.md`
+- **Architecture Decision Records** via `.claude/rules/adr.md`
+- **Sync mechanism** to pull upstream template updates via `just sync-template`

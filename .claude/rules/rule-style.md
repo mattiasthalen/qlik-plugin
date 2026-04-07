@@ -1,3 +1,3 @@
 # Rule Style
 
-- NEVER write rules as "do X". Always phrase rules as "NEVER do Y" to clearly define what to avoid.
+- NEVER write a rule with only a negative or only a positive. Every rule must have both: what to avoid, then the alternative.

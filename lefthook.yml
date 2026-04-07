@@ -1,0 +1,22 @@
+pre-commit:
+  commands:
+    gitkeep-cleanup:
+      glob: ".gitkeep"
+      run: |
+        for f in {staged_files}; do
+          dir=$(dirname "$f")
+          if [ -f "$dir/.gitkeep" ] && [ "$(ls -1 "$dir" | wc -l)" -gt 1 ]; then
+            rm "$dir/.gitkeep"
+            git add "$dir/.gitkeep"
+          fi
+        done
+
+commit-msg:
+  commands:
+    conventional-commit:
+      run: |
+        msg=$(head -1 {1})
+        if ! echo "$msg" | grep -qE '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore)(\(.+\))?!?: .+'; then
+          echo "Commit message must follow Conventional Commits: <type>[scope]: <description>"
+          exit 1
+        fi
