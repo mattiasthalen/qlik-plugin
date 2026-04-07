@@ -5,18 +5,17 @@ CLAUDE.local.md
 # Git worktrees
 .worktrees/
 
+# OS
+.DS_Store
+Thumbs.db
+
 # IDE
 .idea/
 .vscode/
+*.swp
+*.swo
 
-# WSL device files
-.bash_profile
-.bashrc
-.profile
-.zprofile
-.zshrc
-.gitconfig
-.ripgreprc
-
-# Misc
-.gitmodules
+# Environment
+.env
+.env.*
+!.env.example
