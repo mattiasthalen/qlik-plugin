@@ -1,0 +1,2 @@
+name           server                                   current     comment
+test-tenant    https://test-tenant.us.qlikcloud.com     *

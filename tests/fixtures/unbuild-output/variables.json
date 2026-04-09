@@ -1,0 +1,16 @@
+[
+  {
+    "qInfo": { "qId": "var-001", "qType": "variable" },
+    "qName": "vCurrentYear",
+    "qDefinition": "=Year(Today())",
+    "qComment": "Current year for default selections",
+    "tags": []
+  },
+  {
+    "qInfo": { "qId": "var-002", "qType": "variable" },
+    "qName": "vRevenueTarget",
+    "qDefinition": "1000000",
+    "qComment": "Annual revenue target",
+    "tags": ["kpi"]
+  }
+]

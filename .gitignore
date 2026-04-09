@@ -1,3 +1,4 @@
 # Git worktrees
 .worktrees/
 .claude/worktrees/
+.qlik-sync/

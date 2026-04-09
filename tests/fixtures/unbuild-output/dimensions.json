@@ -1,0 +1,28 @@
+[
+  {
+    "qInfo": { "qId": "dim-001", "qType": "dimension" },
+    "qDim": {
+      "qGrouping": "N",
+      "qFieldDefs": ["CustomerID"],
+      "qFieldLabels": ["Customer"]
+    },
+    "qMetaDef": {
+      "title": "Customer",
+      "description": "Customer identifier",
+      "tags": ["finance"]
+    }
+  },
+  {
+    "qInfo": { "qId": "dim-002", "qType": "dimension" },
+    "qDim": {
+      "qGrouping": "N",
+      "qFieldDefs": ["ProductID"],
+      "qFieldLabels": ["Product"]
+    },
+    "qMetaDef": {
+      "title": "Product",
+      "description": "Product identifier",
+      "tags": ["finance"]
+    }
+  }
+]

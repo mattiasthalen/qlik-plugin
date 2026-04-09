@@ -1,0 +1,32 @@
+[
+  {
+    "qInfo": { "qId": "measure-001", "qType": "measure" },
+    "qMeasure": {
+      "qLabel": "Total Revenue",
+      "qDef": "Sum(Amount)",
+      "qGrouping": "N",
+      "qExpressions": [],
+      "qActiveExpression": 0
+    },
+    "qMetaDef": {
+      "title": "Total Revenue",
+      "description": "Sum of all sales amounts",
+      "tags": ["finance", "kpi"]
+    }
+  },
+  {
+    "qInfo": { "qId": "measure-002", "qType": "measure" },
+    "qMeasure": {
+      "qLabel": "Order Count",
+      "qDef": "Count(DISTINCT OrderID)",
+      "qGrouping": "N",
+      "qExpressions": [],
+      "qActiveExpression": 0
+    },
+    "qMetaDef": {
+      "title": "Order Count",
+      "description": "Count of unique orders",
+      "tags": ["finance"]
+    }
+  }
+]

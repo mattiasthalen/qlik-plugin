@@ -1,0 +1,137 @@
+#!/bin/bash
+# Mock qlik binary for testing
+# Returns canned responses matching qlik-cli v3.0.0 output
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+FIXTURES_DIR="$SCRIPT_DIR/../fixtures"
+
+case "$1" in
+  version)
+    echo "qlik version 3.0.0"
+    ;;
+  context)
+    case "$2" in
+      ls)
+        cat "$FIXTURES_DIR/context-ls-response.txt"
+        ;;
+      create)
+        echo ""
+        ;;
+      use)
+        echo "Context: $3"
+        ;;
+      rm)
+        echo "Context: <NONE>"
+        ;;
+      login)
+        echo "Login successful"
+        ;;
+      *)
+        echo "Unknown context subcommand: $2" >&2
+        exit 1
+        ;;
+    esac
+    ;;
+  app)
+    case "$2" in
+      ls)
+        # Check for --spaceId filter
+        SPACE_FILTER=""
+        for arg in "$@"; do
+          case "$arg" in
+            --spaceId) SPACE_FILTER="next" ;;
+            *)
+              if [ "$SPACE_FILTER" = "next" ]; then
+                SPACE_FILTER="$arg"
+              fi
+              ;;
+          esac
+        done
+        if [ -n "$SPACE_FILTER" ] && [ "$SPACE_FILTER" != "next" ]; then
+          jq "[.[] | select(.resourceAttributes.spaceId == \"$SPACE_FILTER\")]" "$FIXTURES_DIR/app-ls-response.json"
+        else
+          cat "$FIXTURES_DIR/app-ls-response.json"
+        fi
+        ;;
+      unbuild)
+        # Parse --app and --dir flags
+        APP_ID=""
+        DIR=""
+        while [ $# -gt 0 ]; do
+          case "$1" in
+            --app) APP_ID="$2"; shift 2 ;;
+            --dir) DIR="$2"; shift 2 ;;
+            *) shift ;;
+          esac
+        done
+        if [ -z "$APP_ID" ] || [ -z "$DIR" ]; then
+          echo "Error: --app and --dir required" >&2
+          exit 1
+        fi
+        mkdir -p "$DIR"
+        cp -r "$FIXTURES_DIR/unbuild-output/"* "$DIR/"
+        # Stamp the app ID into config.yml for verification
+        echo "appId: $APP_ID" > "$DIR/config.yml"
+        echo "\"unbuild\" command is experimental and it may change between releases"
+        ;;
+      *)
+        echo "Unknown app subcommand: $2" >&2
+        exit 1
+        ;;
+    esac
+    ;;
+  space)
+    case "$2" in
+      ls)
+        # Check for --name filter
+        NAME_FILTER=""
+        for arg in "$@"; do
+          case "$arg" in
+            --name) NAME_FILTER="next" ;;
+            *)
+              if [ "$NAME_FILTER" = "next" ]; then
+                NAME_FILTER="$arg"
+              fi
+              ;;
+          esac
+        done
+        if [ -n "$NAME_FILTER" ] && [ "$NAME_FILTER" != "next" ]; then
+          jq "[.[] | select(.name == \"$NAME_FILTER\")]" "$FIXTURES_DIR/space-ls-response.json"
+        else
+          cat "$FIXTURES_DIR/space-ls-response.json"
+        fi
+        ;;
+      *)
+        echo "Unknown space subcommand: $2" >&2
+        exit 1
+        ;;
+    esac
+    ;;
+  user)
+    case "$2" in
+      get)
+        USER_ID=""
+        shift 2
+        while [ $# -gt 0 ]; do
+          case "$1" in
+            --id) USER_ID="$2"; shift 2 ;;
+            --json) shift ;;
+            *) USER_ID="$1"; shift ;;
+          esac
+        done
+        cat "$FIXTURES_DIR/user-get-response.json"
+        ;;
+      me)
+        cat "$FIXTURES_DIR/user-get-response.json"
+        ;;
+      *)
+        echo "Unknown user subcommand: $2" >&2
+        exit 1
+        ;;
+    esac
+    ;;
+  *)
+    echo "Unknown command: $1" >&2
+    exit 1
+    ;;
+esac
