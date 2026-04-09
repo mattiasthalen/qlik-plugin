@@ -167,9 +167,12 @@ assert_contains "zero cost" '$0.00' "$result"
 echo "Full output format:"
 
 # Strip ANSI codes for format check
-result=$(CLAUDE_PROJECT_DIR="/workspaces/primer" GIT_TOPLEVEL="/workspaces/primer" GIT_DIRTY="" GIT_UNTRACKED="" GIT_NO_UPSTREAM="1" bash "$SCRIPT" <<< '{"model":{"id":"claude-opus-4-6","display_name":"Opus"},"context_window":{"used_percentage":5,"context_window_size":1000000},"cost":{"total_cost_usd":1.5}}' | sed 's/\x1b\[[0-9;]*m//g')
-assert_contains "full format: path | model | context | cost" "primer (" "$result"
-assert_contains "full format: model | context | cost" "Opus 4.6 | 5% (50k) | \$1.50" "$result"
+result=$(CLAUDE_PROJECT_DIR="/workspaces/primer" GIT_TOPLEVEL="/workspaces/primer" GIT_BRANCH="main" GIT_DIRTY="" GIT_UNTRACKED="" GIT_AHEAD="" GIT_BEHIND="" GIT_NO_UPSTREAM="1" bash "$SCRIPT" <<< '{"model":{"id":"claude-opus-4-6"},"context_window":{"used_percentage":5,"context_window_size":1000000},"cost":{"total_cost_usd":1.5}}' | sed 's/\x1b\[[0-9;]*m//g')
+assert_contains "full format: path (branch) | model | context | cost" "primer (main) | Opus 4.6 | 5% (50k) | \$1.50" "$result"
+
+# Full format with worktree and all indicators
+result=$(CLAUDE_PROJECT_DIR="/workspaces/primer" GIT_TOPLEVEL="/workspaces/primer/.claude/worktrees/feat+thing" GIT_BRANCH="feat/thing" GIT_DIRTY="1" GIT_UNTRACKED="1" GIT_AHEAD="2" GIT_BEHIND="1" bash "$SCRIPT" <<< '{"model":{"id":"claude-sonnet-4-6"},"context_window":{"used_percentage":10,"context_window_size":1000000},"cost":{"total_cost_usd":0.75}}' | sed 's/\x1b\[[0-9;]*m//g')
+assert_contains "full format with worktree and indicators" "primer > feat+thing (feat/thing *! ↑2 ↓1) | Sonnet 4.6 | 10% (100k) | \$0.75" "$result"
 
 echo ""
 echo "Results: $PASS passed, $FAIL failed"
