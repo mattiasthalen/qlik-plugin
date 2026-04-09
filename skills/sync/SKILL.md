@@ -78,13 +78,13 @@ Wait for confirmation before proceeding.
 
 For each app in the list:
 
-1. **Check for resume** — if `.qlik-sync/apps/<app-id>/config.yml` exists and `--force` was NOT passed, skip this app:
+1. **Check for resume** — if `.qlik-sync/apps/<resourceId>/config.yml` exists and `--force` was NOT passed, skip this app:
    > Skipping "<app-name>" (already synced). Use --force to re-sync.
 
 2. **Run unbuild:**
 
 ```bash
-qlik app unbuild --app <app-id> --dir .qlik-sync/apps/<app-id>/
+qlik app unbuild --app <resourceId> --dir .qlik-sync/apps/<resourceId>/
 ```
 
 3. **Report progress:**
@@ -113,20 +113,30 @@ Structure:
   "server": "<from config.json>",
   "appCount": <number of successfully synced apps>,
   "apps": {
-    "<app-id>": {
-      "name": "<app name>",
-      "space": "<space name>",
-      "spaceId": "<space id>",
-      "owner": "<owner>",
-      "description": "<description>",
-      "tags": ["<tag1>", "<tag2>"],
-      "published": true,
-      "lastReloadTime": "<ISO 8601>",
-      "path": "apps/<app-id>/"
+    "<resourceId>": {
+      "name": "<name (top-level)>",
+      "space": "<space name from lookup>",
+      "spaceId": "<resourceAttributes.spaceId>",
+      "owner": "<resourceAttributes.ownerId>",
+      "description": "<resourceAttributes.description>",
+      "tags": ["<meta.tags[].name>"],
+      "published": <resourceAttributes.published>,
+      "lastReloadTime": "<resourceAttributes.lastReloadTime>",
+      "path": "apps/<resourceId>/"
     }
   }
 }
 ```
+
+**Field mapping from `qlik app ls --json` output:**
+- App ID (index key): `resourceId`
+- Name: `name` (top-level)
+- Space ID: `resourceAttributes.spaceId`
+- Owner: `resourceAttributes.ownerId`
+- Description: `resourceAttributes.description`
+- Published: `resourceAttributes.published`
+- Last reload: `resourceAttributes.lastReloadTime`
+- Tags: `meta.tags` (array of objects — extract `.name` from each)
 
 To resolve space names from space IDs, run `qlik space ls --json` once and build a lookup map.
 
