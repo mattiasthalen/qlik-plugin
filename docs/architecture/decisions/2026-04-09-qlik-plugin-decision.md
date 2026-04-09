@@ -204,3 +204,30 @@ Original spec described scripts managing pagination loops for `qlik app ls`.
 
 ### Decision
 No pagination logic in skills or scripts. Teach Claude to use `--limit` flag with a value higher than expected app count. CLI handles the rest.
+
+---
+
+## Decision 10: Fixture Data Shape — Real Structure, Fictional Data
+
+### Context
+Integration testing against a real Qlik Cloud tenant (v3.0.0) revealed that `qlik app ls --json` output is structurally different from our test fixtures. The real output nests most fields under `resourceAttributes`, uses `resourceId` for the app GUID, and stores tags in `meta.tags` as objects. Our fixtures assumed a flat structure based on documentation rather than verified CLI output.
+
+### Options considered
+
+1. **Minimal fix** — update fixture structure only, keep fictional data
+   - Pro: Quick
+   - Con: Same approach
+   - **Rejected** (same as chosen, just less precise naming)
+
+2. **Real data from tenant** — capture actual output as fixtures
+   - Pro: Most accurate
+   - Con: Ties to specific tenant, may contain sensitive info
+   - **Rejected**
+
+3. **Real structure, fictional data** — use verified v3.0.0 output shape with fictional app names/IDs
+   - Pro: Tests stay clean and self-documenting, structure matches production
+   - Pro: Mock binary and skills use correct field paths
+   - **Chosen**
+
+### Decision
+Rewrite all fixtures to match real qlik-cli v3.0.0 output structure. Keep fictional app names and IDs for readable tests. Update mock binary, skills, and CLI reference to use correct field paths (`resourceId`, `resourceAttributes.*`, `meta.tags`).
