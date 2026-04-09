@@ -282,3 +282,67 @@ Original spec used `.qlik-sync/apps/<app-id>/`. Real-world testing showed this i
 
 ### Decision
 Output structure is `.qlik-sync/<tenant-domain>/<space-name>/<app-name> (<short-resourceId>)/`. Short ID is first 8 chars of `resourceId`, always appended. Unresolved spaces use `Unknown (<short-spaceId>)`. Personal space apps go under `Personal/`.
+
+**SUPERSEDED by Decision 13.**
+
+---
+
+## Decision 13: Deep Directory Hierarchy with Full IDs
+
+### Context
+Initial implementation used short 8-char IDs and a 3-level hierarchy (tenant/space/app). Real-world testing against a 134-app tenant showed the need for: full UUIDs for unambiguous identification, space type categorization (shared/managed/data/personal), app type categorization (analytics/dataflow-prep/data-preparation), and resolved usernames for personal spaces.
+
+### Options considered
+
+1. **Flat with short IDs** — `tenant/space/app (shortid)/`
+   - **Rejected** — short IDs are ambiguous, no space type visibility, no app type visibility
+
+2. **Prefix space type** — `tenant/shared - Space (id)/app (id)/`
+   - Pro: Space type visible
+   - Con: Mixes categorical and instance data in one folder name
+   - **Rejected**
+
+3. **Deep hierarchy** — `tenant (tenantId)/space-type/space (spaceId)/app-type/app (resourceId)/`
+   - Pro: Clean separation of categories and instances
+   - Pro: Full UUIDs at every level for unambiguous identification
+   - Pro: Personal spaces resolved to username via `qlik user get`
+   - Pro: 5-level structure mirrors Qlik Cloud's actual taxonomy
+   - **Chosen**
+
+### Decision
+Output structure: `<tenant-domain> (<tenantId>)/<space-type>/<space-name> (<spaceId>)/<app-type>/<app-name> (<full-resourceId>)/`
+
+- Tenant domain: everything before `.qlikcloud.com` (preserves region)
+- Space types: `shared/`, `managed/`, `data/`, `personal/`
+- Personal spaces: `personal/<username> (<ownerId>)/` — resolved via `qlik user get`
+- App types: `analytics/`, `dataflow-prep/`, `data-preparation/` — normalized from `resourceAttributes.usage`
+- Unknown spaces: `unknown/<full-spaceId>/` (just the UUID as folder name)
+- All IDs are full UUIDs, always in parentheses
+
+---
+
+## Decision 14: CLI Whitelist via allowed-tools
+
+### Context
+Claude Code plugins can restrict which bash commands are pre-approved using `allowed-tools` in SKILL.md frontmatter. Without restrictions, Claude can run any qlik command including destructive ones (delete, build, reload). v0.1.0 is read-only — only safe commands should be auto-approved.
+
+### Options considered
+
+1. **No restrictions** — trust Claude to be careful
+   - **Rejected** — public plugin, can't rely on good behavior
+
+2. **Hook-based blocking** — pre-command hooks to block dangerous commands
+   - Pro: Hard block
+   - Con: More complex, harder to maintain
+   - **Rejected for v0.1.0**
+
+3. **allowed-tools frontmatter** — each skill declares exactly which commands are pre-approved
+   - Pro: Declarative, per-skill, anything else requires user approval
+   - Pro: Built into Claude Code's permission system
+   - **Chosen**
+
+### Decision
+Each skill declares `allowed-tools` in frontmatter. v0.1.0 whitelist:
+- Setup: `qlik context:*`, `qlik app ls:*`, `qlik version:*`, `which:*`, `mkdir:*`, `grep:*`, Read, Write
+- Sync: `bash sync-tenant.sh:*`, `qlik app ls:*`, Read
+- Inspect: Read, Glob, Grep (no Bash at all)
