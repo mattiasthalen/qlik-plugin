@@ -1,12 +1,11 @@
 ---
 name: inspect
 description: >
-  Search and navigate the local Qlik app cache. Use when the user says
-  "find measure", "search qlik scripts", "which apps use QVD",
-  "show me the load script", "compare measures", "list apps in space",
-  "what connections does this app use", or wants to explore their synced
-  Qlik environment. Works entirely offline against .qlik-sync/ — no
-  API calls needed.
+  Use when the user says "find measure", "search qlik scripts", "which
+  apps use QVD", "show me the load script", "compare measures", "list
+  apps in space", "what connections does this app use", "show variables",
+  "compare expressions", "find field", or wants to explore their synced
+  Qlik environment. Works offline against .qlik-sync/ cache.
 ---
 
 # Qlik Inspect

@@ -1,12 +1,11 @@
 ---
 name: sync
 description: >
-  Pull Qlik Sense apps from cloud tenant to local working copy. Use
-  when the user says "sync qlik", "pull qlik apps", "download qlik
-  environment", "extract all apps", "sync this space", or wants to
-  refresh the local copy of their Qlik apps. Supports filtering by
-  space name, app name pattern, or single app ID. Handles large
-  tenants (200-800 apps) with resume-on-failure.
+  Use when the user says "sync qlik", "pull qlik apps", "download
+  qlik environment", "extract all apps", "sync this space", or wants
+  to refresh the local copy of their Qlik apps. Also use when sync
+  failed partway and needs to resume, or when apps need re-syncing
+  after changes on the tenant.
 ---
 
 # Qlik Sync

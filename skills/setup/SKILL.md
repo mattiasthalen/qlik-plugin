@@ -1,12 +1,10 @@
 ---
 name: setup
 description: >
-  Set up qlik-cli for use with Claude Code. Use when the user says
-  "set up qlik", "configure qlik", "connect to my qlik tenant",
-  "install qlik cli", or wants to connect Claude to their Qlik Cloud
-  environment. Verifies prerequisites (qlik binary, jq), guides
-  OAuth authentication, tests connectivity, and creates the local
-  workspace.
+  Use when the user says "set up qlik", "configure qlik", "connect to
+  my qlik tenant", or wants to connect Claude to their Qlik Cloud
+  environment. Also use when qlik-cli auth fails or tenant connection
+  needs troubleshooting.
 ---
 
 # Qlik Setup
@@ -45,44 +43,33 @@ If they want to reuse it, skip to Step 4.
 
 ## Step 3: Create Context and Authenticate
 
-Ask the user for their Qlik Cloud tenant URL (e.g., `https://mytenant.us.qlikcloud.com`).
+Ask the user for their Qlik Cloud tenant URL (e.g., `https://mytenant.us.qlikcloud.com`) and a context name (e.g., their tenant subdomain like `my-tenant`).
 
-```bash
-qlik context create <context-name> --server https://<tenant-url>
-```
-
-Ask the user to pick a context name (e.g., their tenant name like `my-tenant`) or use the tenant subdomain.
-
-Then start the OAuth login flow:
-
-```bash
-qlik context login
-```
-
-This opens a browser window for authentication. Tell the user:
-> A browser window should open for Qlik Cloud login. Complete the authentication there, then confirm here when done.
-
-Wait for user confirmation before continuing.
-
-### Troubleshooting Auth
-
-- **Browser didn't open:** Run `qlik context login --help` for options, or try opening the URL manually.
-- **Login failed:** Clear browser cookies for the tenant domain and retry.
-- **Wrong tenant:** Run `qlik context ls` to verify the server URL, then `qlik context create` again with the correct URL.
-
-### Alternative: API Key Auth
-
-If OAuth browser login is not available (e.g., headless environment), use an API key instead:
+### API Key Auth (recommended for Qlik Cloud)
 
 1. Ask the user to generate an API key at `https://<tenant-url>/settings/api-keys`
    - Requires the "Manage API keys" permission (Developer role or custom role)
+   - The key is only shown once — copy it immediately
 2. Create the context with the key:
 
 ```bash
 qlik context create <context-name> --server https://<tenant-url> --api-key <API_KEY>
 ```
 
-3. Skip to Step 4 (Test Connectivity).
+### Alternative: OAuth Login (on-prem / QSEoW only)
+
+Note: `qlik context login` is for Qlik Sense Enterprise on Windows only. For Qlik Cloud, use API key auth above.
+
+```bash
+qlik context create <context-name> --server https://<tenant-url>
+qlik context login
+```
+
+### Troubleshooting Auth
+
+- **API key gives 401:** Key may have expired. Generate a new one at `/settings/api-keys`.
+- **"Manage API keys" not available:** Enable API keys in Management Console → Settings → Feature Control, or add the permission via a custom role.
+- **Wrong tenant:** Run `qlik context ls` to verify the server URL, then recreate the context with the correct URL.
 
 ## Step 4: Test Connectivity
 
