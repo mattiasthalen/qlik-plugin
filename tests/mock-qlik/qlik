@@ -1,21 +1,27 @@
 #!/bin/bash
 # Mock qlik binary for testing
-# Returns canned responses based on subcommand
+# Returns canned responses matching qlik-cli v3.0.0 output
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 FIXTURES_DIR="$SCRIPT_DIR/../fixtures"
 
 case "$1" in
   version)
-    echo "qlik version 2.24.0"
+    echo "qlik version 3.0.0"
     ;;
   context)
     case "$2" in
       ls)
-        cat "$FIXTURES_DIR/context-ls-response.json"
+        cat "$FIXTURES_DIR/context-ls-response.txt"
         ;;
       create)
-        echo "Context created successfully"
+        echo ""
+        ;;
+      use)
+        echo "Context: $3"
+        ;;
+      rm)
+        echo "Context: <NONE>"
         ;;
       login)
         echo "Login successful"
@@ -42,7 +48,7 @@ case "$1" in
           esac
         done
         if [ -n "$SPACE_FILTER" ] && [ "$SPACE_FILTER" != "next" ]; then
-          jq "[.[] | select(.spaceId == \"$SPACE_FILTER\")]" "$FIXTURES_DIR/app-ls-response.json"
+          jq "[.[] | select(.resourceAttributes.spaceId == \"$SPACE_FILTER\")]" "$FIXTURES_DIR/app-ls-response.json"
         else
           cat "$FIXTURES_DIR/app-ls-response.json"
         fi
@@ -66,7 +72,7 @@ case "$1" in
         cp -r "$FIXTURES_DIR/unbuild-output/"* "$DIR/"
         # Stamp the app ID into config.yml for verification
         echo "appId: $APP_ID" > "$DIR/config.yml"
-        echo "Unbuild complete: $APP_ID -> $DIR"
+        echo "\"unbuild\" command is experimental and it may change between releases"
         ;;
       *)
         echo "Unknown app subcommand: $2" >&2
@@ -77,7 +83,23 @@ case "$1" in
   space)
     case "$2" in
       ls)
-        cat "$FIXTURES_DIR/space-ls-response.json"
+        # Check for --name filter
+        NAME_FILTER=""
+        for arg in "$@"; do
+          case "$arg" in
+            --name) NAME_FILTER="next" ;;
+            *)
+              if [ "$NAME_FILTER" = "next" ]; then
+                NAME_FILTER="$arg"
+              fi
+              ;;
+          esac
+        done
+        if [ -n "$NAME_FILTER" ] && [ "$NAME_FILTER" != "next" ]; then
+          jq "[.[] | select(.name == \"$NAME_FILTER\")]" "$FIXTURES_DIR/space-ls-response.json"
+        else
+          cat "$FIXTURES_DIR/space-ls-response.json"
+        fi
         ;;
       *)
         echo "Unknown space subcommand: $2" >&2
