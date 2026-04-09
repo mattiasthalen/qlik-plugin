@@ -107,6 +107,29 @@ case "$1" in
         ;;
     esac
     ;;
+  user)
+    case "$2" in
+      get)
+        USER_ID=""
+        shift 2
+        while [ $# -gt 0 ]; do
+          case "$1" in
+            --id) USER_ID="$2"; shift 2 ;;
+            --json) shift ;;
+            *) USER_ID="$1"; shift ;;
+          esac
+        done
+        cat "$FIXTURES_DIR/user-get-response.json"
+        ;;
+      me)
+        cat "$FIXTURES_DIR/user-get-response.json"
+        ;;
+      *)
+        echo "Unknown user subcommand: $2" >&2
+        exit 1
+        ;;
+    esac
+    ;;
   *)
     echo "Unknown command: $1" >&2
     exit 1

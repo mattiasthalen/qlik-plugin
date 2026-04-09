@@ -1,0 +1,7 @@
+{
+  "id": "user-001",
+  "name": "testuser",
+  "email": "testuser@company.com",
+  "status": "active",
+  "tenantId": "test-tenant-id"
+}
