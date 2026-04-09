@@ -17,4 +17,26 @@ assert_contains "documents space ls" "$CONTENT" "qlik space ls"
 assert_contains "documents SaaS-only limitation" "$CONTENT" "SaaS"
 assert_contains "documents pagination" "$CONTENT" "limit"
 
+echo ""
+echo "=== sync SKILL.md tests ==="
+
+SYNC_SKILL="$REPO_ROOT/skills/sync/SKILL.md"
+
+assert_file_exists "sync SKILL.md exists" "$SYNC_SKILL"
+
+FRONTMATTER=$(sed -n '/^---$/,/^---$/p' "$SYNC_SKILL")
+assert_contains "frontmatter has name" "$FRONTMATTER" "name: sync"
+assert_contains "frontmatter has description" "$FRONTMATTER" "description:"
+
+CONTENT=$(cat "$SYNC_SKILL")
+assert_contains "mentions config.json check" "$CONTENT" "config.json"
+assert_contains "mentions qlik app ls" "$CONTENT" "qlik app ls"
+assert_contains "mentions qlik app unbuild" "$CONTENT" "qlik app unbuild"
+assert_contains "mentions index.json" "$CONTENT" "index.json"
+assert_contains "mentions space filtering" "$CONTENT" "space"
+assert_contains "mentions resume logic" "$CONTENT" "config.yml"
+assert_contains "mentions progress reporting" "$CONTENT" "progress"
+assert_contains "mentions lastSync" "$CONTENT" "lastSync"
+assert_contains "references cli-commands.md" "$CONTENT" "cli-commands.md"
+
 test_summary
