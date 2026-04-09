@@ -1,4 +1,9 @@
 {
+  "statusLine": {
+    "type": "command",
+    "command": "$CLAUDE_PROJECT_DIR/.claude/commands/statusline.sh",
+    "refreshInterval": 10
+  },
   "enabledPlugins": {
     "superpowers@claude-plugins-official": true,
     "codex@openai-codex": true,

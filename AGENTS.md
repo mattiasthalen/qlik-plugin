@@ -18,3 +18,4 @@
 - ALWAYS push after every commit.
 - ALWAYS use merge commits when merging PRs or branches — preserve full commit history.
 - ALWAYS treat the repo as the only durable state — this is a sandbox/devcontainer and the global home directory is wiped on rebuild.
+- ALWAYS invoke /caveman:caveman and /superpowers:using-superpowers skills on session start and after /clear before responding to user.
