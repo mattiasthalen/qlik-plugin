@@ -231,3 +231,54 @@ Integration testing against a real Qlik Cloud tenant (v3.0.0) revealed that `qli
 
 ### Decision
 Rewrite all fixtures to match real qlik-cli v3.0.0 output structure. Keep fictional app names and IDs for readable tests. Update mock binary, skills, and CLI reference to use correct field paths (`resourceId`, `resourceAttributes.*`, `meta.tags`).
+
+---
+
+## Decision 11: Sync Architecture — Bash Script Bridge
+
+### Context
+Integration testing against a real 134-app tenant revealed that the sync workflow is purely mechanical: list apps, resolve spaces, loop unbuild, build index. Claude orchestrating this loop wastes tokens and is slow. Additionally, duplicate app names (30 apps named "Test App") cause folder collisions, and some space IDs don't resolve via `qlik space ls`.
+
+### Options considered
+
+1. **Go CLI now** — build a Go binary for sync in v0.1.0
+   - Pro: Fast, proper, handles all edge cases
+   - Con: Adds Go toolchain dependency, premature for v0.1.0
+   - **Rejected for v0.1.0**
+
+2. **Keep skills-only** — fix duplicate handling in the skill, Claude still orchestrates the loop
+   - Pro: No new code
+   - Con: Slow (Claude runs 134 sequential commands), wasteful, error-prone
+   - **Rejected**
+
+3. **Bash script bridge** — `sync-tenant.sh` handles the mechanical loop, skill calls the script
+   - Pro: Claude handles interactive parts (parsing intent, reporting), script handles deterministic work
+   - Pro: Same interface when Go replaces the script later
+   - Pro: Testable with mock qlik binary
+   - **Chosen**
+
+### Decision
+Add `skills/sync/scripts/sync-tenant.sh` that reads `.qlik-sync/config.json`, runs the full sync loop, handles duplicate names (append short ID), resolves spaces (Unknown for unresolved), and builds `index.json`. Sync skill calls this script instead of orchestrating CLI commands directly.
+
+---
+
+## Decision 12: Output Directory Structure — tenant/space/app
+
+### Context
+Original spec used `.qlik-sync/apps/<app-id>/`. Real-world testing showed this is unusable — you can't tell which app is which without cross-referencing the index. Need human-readable directory names.
+
+### Options considered
+
+1. **Flat by app ID** — `.qlik-sync/apps/<app-id>/`
+   - **Rejected** — unreadable
+
+2. **tenant/space/app (short-id)** — `.qlik-sync/two.eu/Finance Prod/Sales Dashboard (204be326)/`
+   - Pro: Human-readable, organized by space, short ID prevents collisions
+   - Pro: Always append short ID — predictable, no collision logic needed
+   - **Chosen**
+
+3. **tenant/space/app with dedup suffix** — append `(2)`, `(3)` for duplicates only
+   - **Rejected** — unpredictable folder names, order-dependent
+
+### Decision
+Output structure is `.qlik-sync/<tenant-domain>/<space-name>/<app-name> (<short-resourceId>)/`. Short ID is first 8 chars of `resourceId`, always appended. Unresolved spaces use `Unknown (<short-spaceId>)`. Personal space apps go under `Personal/`.
