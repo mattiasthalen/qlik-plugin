@@ -38,46 +38,77 @@ if [ -z "$CONTEXT" ] || [ -z "$SERVER" ]; then
   exit 1
 fi
 
-# Extract tenant domain from server URL
-TENANT="$(echo "$SERVER" | sed -E 's|https?://([^.]+)\..*|\1|')"
+# Extract tenant domain — keep region (e.g., two.eu from https://two.eu.qlikcloud.com)
+TENANT_DOMAIN="$(echo "$SERVER" | sed -E 's|https?://(.+)\.qlikcloud\.com.*|\1|')"
 
 # --- Check dependencies ---
-if ! command -v qlik >/dev/null 2>&1; then
-  echo "Error: qlik CLI not found on PATH." >&2
-  exit 1
-fi
-if ! command -v jq >/dev/null 2>&1; then
-  echo "Error: jq not found on PATH." >&2
-  exit 1
-fi
+for cmd in qlik jq; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "Error: $cmd not found on PATH." >&2
+    exit 1
+  fi
+done
 
 # --- Fetch spaces and build lookup ---
 SPACES_JSON="$(qlik space ls --json)"
 
-# Build a space lookup file (id -> name) using temp file
 SPACE_LOOKUP="$(mktemp)"
-trap 'rm -f "$SPACE_LOOKUP"' EXIT
-echo "$SPACES_JSON" | jq -r '.[] | "\(.id)\t\(.name)"' > "$SPACE_LOOKUP"
+USER_CACHE="$(mktemp)"
+INDEX_ENTRIES="$(mktemp)"
+trap 'rm -f "$SPACE_LOOKUP" "$USER_CACHE" "$INDEX_ENTRIES"' EXIT
 
-resolve_space() {
+# Build space lookup: id -> name\ttype
+echo "$SPACES_JSON" | jq -r '.[] | "\(.id)\t\(.name)\t\(.type)"' > "$SPACE_LOOKUP"
+
+resolve_space_name() {
   local space_id="$1"
   if [ -z "$space_id" ] || [ "$space_id" = "null" ]; then
-    echo "Personal"
+    echo ""
     return
   fi
-  local name
-  name="$(grep "^${space_id}	" "$SPACE_LOOKUP" | cut -f2)"
-  if [ -n "$name" ]; then
-    echo "$name"
-  else
-    echo "Unknown (${space_id:0:8})"
+  grep "^${space_id}	" "$SPACE_LOOKUP" | cut -f2
+}
+
+resolve_space_type() {
+  local space_id="$1"
+  if [ -z "$space_id" ] || [ "$space_id" = "null" ]; then
+    echo "personal"
+    return
   fi
+  local stype
+  stype="$(grep "^${space_id}	" "$SPACE_LOOKUP" | cut -f3)"
+  if [ -n "$stype" ]; then
+    echo "$stype"
+  else
+    echo "unknown"
+  fi
+}
+
+resolve_username() {
+  local user_id="$1"
+  local cached
+  cached="$(grep "^${user_id}	" "$USER_CACHE" 2>/dev/null | cut -f2)"
+  if [ -n "$cached" ]; then
+    echo "$cached"
+    return
+  fi
+  local uname
+  uname="$(qlik user get "$user_id" --json 2>/dev/null | jq -r '.name // .email // empty')"
+  if [ -z "$uname" ]; then
+    uname="$user_id"
+  fi
+  printf '%s\t%s\n' "$user_id" "$uname" >> "$USER_CACHE"
+  echo "$uname"
+}
+
+normalize_app_type() {
+  echo "$1" | tr '[:upper:]' '[:lower:]' | tr '_' '-'
 }
 
 # --- Resolve space ID for space filter ---
 SPACE_ID_FILTER=""
 if [ -n "$SPACE_FILTER" ]; then
-  SPACE_ID_FILTER="$(grep "	${SPACE_FILTER}$" "$SPACE_LOOKUP" | cut -f1)"
+  SPACE_ID_FILTER="$(grep "	${SPACE_FILTER}	" "$SPACE_LOOKUP" | cut -f1)"
   if [ -z "$SPACE_ID_FILTER" ]; then
     echo "Error: space '$SPACE_FILTER' not found." >&2
     exit 1
@@ -86,7 +117,6 @@ fi
 
 # --- Fetch apps ---
 if [ -n "$ID_FILTER" ]; then
-  # Single app by ID — construct a one-element array
   APPS_JSON="$(qlik app ls --json --limit 1000 | jq "[.[] | select(.resourceId == \"$ID_FILTER\")]")"
 elif [ -n "$SPACE_ID_FILTER" ]; then
   APPS_JSON="$(qlik app ls --json --limit 1000 --spaceId "$SPACE_ID_FILTER")"
@@ -94,7 +124,6 @@ else
   APPS_JSON="$(qlik app ls --json --limit 1000)"
 fi
 
-# Apply app name filter if set
 if [ -n "$APP_FILTER" ]; then
   APPS_JSON="$(echo "$APPS_JSON" | jq "[.[] | select(.name | test(\"$APP_FILTER\"))]")"
 fi
@@ -106,7 +135,10 @@ if [ "$APP_COUNT" -eq 0 ]; then
   exit 0
 fi
 
-# Determine if this is a partial sync (filtered)
+# Get tenant ID from first app
+TENANT_ID="$(echo "$APPS_JSON" | jq -r '.[0].tenantId // empty')"
+TENANT_DIR="$TENANT_DOMAIN ($TENANT_ID)"
+
 PARTIAL=false
 if [ -n "$SPACE_FILTER" ] || [ -n "$APP_FILTER" ] || [ -n "$ID_FILTER" ]; then
   PARTIAL=true
@@ -117,15 +149,11 @@ sanitize() {
   echo "$1" | tr '/\\:*?"<>|' '_________'
 }
 
-# --- Sync loop using process substitution to avoid subshell ---
+# --- Sync loop ---
 SYNCED=0
 SKIPPED=0
 ERRORS=0
 IDX=0
-
-# Build apps index entries in a temp file
-INDEX_ENTRIES="$(mktemp)"
-trap 'rm -f "$SPACE_LOOKUP" "$INDEX_ENTRIES"' EXIT
 
 while IFS= read -r app_line; do
   IDX=$((IDX + 1))
@@ -137,22 +165,46 @@ while IFS= read -r app_line; do
   description="$(echo "$app_line" | jq -r '.resourceAttributes.description // empty')"
   published="$(echo "$app_line" | jq -r '.resourceAttributes.published // false')"
   last_reload="$(echo "$app_line" | jq -r '.resourceAttributes.lastReloadTime // empty')"
+  usage="$(echo "$app_line" | jq -r '.resourceAttributes.usage // "ANALYTICS"')"
   tags="$(echo "$app_line" | jq -c '[.meta.tags[]?.name]')"
 
-  space_name="$(resolve_space "$space_id")"
-  short_id="${resource_id:0:8}"
+  space_type="$(resolve_space_type "$space_id")"
+  space_name="$(resolve_space_name "$space_id")"
+  app_type="$(normalize_app_type "$usage")"
 
-  safe_space="$(sanitize "$space_name")"
+  # Build space folder name based on type
+  if [ "$space_type" = "personal" ]; then
+    owner_name="$(resolve_username "$owner_id")"
+    space_folder="$(sanitize "$owner_name") ($owner_id)"
+  elif [ "$space_type" = "unknown" ]; then
+    space_folder="$space_id"
+    space_name="$space_id"
+  else
+    space_folder="$(sanitize "$space_name") ($space_id)"
+  fi
+
   safe_app="$(sanitize "$app_name")"
-  rel_path="$TENANT/$safe_space/$safe_app ($short_id)/"
+  app_folder="$safe_app ($resource_id)"
+
+  # Full 5-level path: tenant/space-type/space/app-type/app/
+  rel_path="$TENANT_DIR/$space_type/$space_folder/$app_type/$app_folder/"
   full_path=".qlik-sync/$rel_path"
 
-  # Resume: skip if config.yml exists unless --force
+  # Display for progress
+  if [ "$space_type" = "personal" ]; then
+    display_space="personal/$owner_name"
+  elif [ "$space_type" = "unknown" ]; then
+    display_space="unknown/$space_id"
+  else
+    display_space="$space_type/$space_name"
+  fi
+
+  # Resume check
   if [ "$FORCE" = false ] && [ -f "$full_path/config.yml" ]; then
     SKIPPED=$((SKIPPED + 1))
-    echo "[$IDX/$APP_COUNT] SKIP: $space_name / $app_name"
+    echo "[$IDX/$APP_COUNT] SKIP: $display_space / $app_name"
   else
-    echo "[$IDX/$APP_COUNT] Syncing: $space_name / $app_name..."
+    echo "[$IDX/$APP_COUNT] Syncing: $display_space / $app_name..."
     mkdir -p "$full_path"
     if qlik app unbuild --app "$resource_id" --dir "$full_path" >/dev/null 2>&1; then
       SYNCED=$((SYNCED + 1))
@@ -162,20 +214,28 @@ while IFS= read -r app_line; do
     fi
   fi
 
-  # Build index entry (one JSON object per line)
+  # Resolve owner name for index (may already be cached for personal)
+  if [ "$space_type" != "personal" ]; then
+    owner_name="$(resolve_username "$owner_id")"
+  fi
+
+  # Build index entry
   cat >> "$INDEX_ENTRIES" <<ENTRY
 $(jq -n \
   --arg id "$resource_id" \
   --arg name "$app_name" \
   --arg space "$space_name" \
   --arg spaceId "$space_id" \
+  --arg spaceType "$space_type" \
+  --arg appType "$app_type" \
   --arg owner "$owner_id" \
+  --arg ownerName "$owner_name" \
   --arg desc "$description" \
   --argjson tags "$tags" \
   --argjson published "$published" \
   --arg reload "$last_reload" \
   --arg path "$rel_path" \
-  '{($id): {name: $name, space: $space, spaceId: $spaceId, owner: $owner, description: $desc, tags: $tags, published: $published, lastReloadTime: $reload, path: $path}}')
+  '{($id): {name: $name, space: $space, spaceId: $spaceId, spaceType: $spaceType, appType: $appType, owner: $owner, ownerName: $ownerName, description: $desc, tags: $tags, published: $published, lastReloadTime: $reload, path: $path}}')
 ENTRY
 
 done < <(echo "$APPS_JSON" | jq -c '.[]')
@@ -184,10 +244,8 @@ done < <(echo "$APPS_JSON" | jq -c '.[]')
 INDEX_FILE=".qlik-sync/index.json"
 NOW="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
-# Merge all app entries into one object
 APPS_OBJ="$(jq -s 'add // {}' "$INDEX_ENTRIES")"
 
-# If partial sync, merge into existing index
 if [ "$PARTIAL" = true ] && [ -f "$INDEX_FILE" ]; then
   EXISTING_APPS="$(jq '.apps // {}' "$INDEX_FILE")"
   APPS_OBJ="$(echo "$EXISTING_APPS" "$APPS_OBJ" | jq -s '.[0] * .[1]')"
@@ -199,13 +257,14 @@ jq -n \
   --arg lastSync "$NOW" \
   --arg context "$CONTEXT" \
   --arg server "$SERVER" \
-  --arg tenant "$TENANT" \
+  --arg tenant "$TENANT_DOMAIN" \
+  --arg tenantId "$TENANT_ID" \
   --argjson appCount "$FINAL_COUNT" \
   --argjson apps "$APPS_OBJ" \
-  '{lastSync: $lastSync, context: $context, server: $server, tenant: $tenant, appCount: $appCount, apps: $apps}' \
+  '{lastSync: $lastSync, context: $context, server: $server, tenant: $tenant, tenantId: $tenantId, appCount: $appCount, apps: $apps}' \
   > "$INDEX_FILE"
 
-# --- Update config.json lastSync ---
+# --- Update config.json ---
 jq --arg ts "$NOW" '.lastSync = $ts' "$CONFIG_FILE" > "${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
 
 # --- Summary ---
