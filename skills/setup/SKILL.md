@@ -5,6 +5,15 @@ description: >
   my qlik tenant", or wants to connect Claude to their Qlik Cloud
   environment. Also use when qlik-cli auth fails or tenant connection
   needs troubleshooting.
+allowed-tools:
+  - Bash(which:*)
+  - Bash(qlik context:*)
+  - Bash(qlik app ls:*)
+  - Bash(qlik version:*)
+  - Bash(mkdir:*)
+  - Bash(grep:*)
+  - Read
+  - Write
 ---
 
 # Qlik Setup

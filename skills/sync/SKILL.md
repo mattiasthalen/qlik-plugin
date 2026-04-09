@@ -6,6 +6,10 @@ description: >
   to refresh the local copy of their Qlik apps. Also use when sync
   failed partway and needs to resume, or when apps need re-syncing
   after changes on the tenant.
+allowed-tools:
+  - "Bash(bash ${CLAUDE_SKILL_ROOT}/scripts/sync-tenant.sh:*)"
+  - Bash(qlik app ls:*)
+  - Read
 ---
 
 # Qlik Sync
@@ -79,22 +83,24 @@ After sync, apps are organized as:
 .qlik-sync/
 ├── config.json
 ├── index.json
-└── <tenant>/
-    ├── <space>/
-    │   ├── <app-name> (<short-id>)/
-    │   │   ├── script.qvs
-    │   │   ├── measures.json
-    │   │   ├── dimensions.json
-    │   │   ├── variables.json
-    │   │   ├── connections.yml
-    │   │   ├── app-properties.json
-    │   │   ├── config.yml
-    │   │   └── objects/
+└── <tenant-domain> (<tenantId>)/
+    ├── shared/
+    │   └── <space-name> (<spaceId>)/
+    │       └── analytics/
+    │           └── <app-name> (<full-resourceId>)/
+    │               ├── script.qvs
+    │               └── ...
+    ├── managed/
     │   └── ...
-    ├── Personal/
+    ├── data/
     │   └── ...
-    └── Unknown (<short-id>)/
-        └── ...
+    ├── personal/
+    │   └── <username> (<ownerId>)/
+    │       └── analytics/
+    │           └── ...
+    └── unknown/
+        └── <spaceId>/
+            └── ...
 ```
 
 ## Done

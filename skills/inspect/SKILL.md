@@ -6,6 +6,10 @@ description: >
   apps in space", "what connections does this app use", "show variables",
   "compare expressions", "find field", or wants to explore their synced
   Qlik environment. Works offline against .qlik-sync/ cache.
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
 ---
 
 # Qlik Inspect
