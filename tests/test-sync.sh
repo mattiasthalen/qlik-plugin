@@ -16,6 +16,8 @@ assert_contains "documents app unbuild" "$CONTENT" "qlik app unbuild"
 assert_contains "documents space ls" "$CONTENT" "qlik space ls"
 assert_contains "documents SaaS-only limitation" "$CONTENT" "SaaS"
 assert_contains "documents pagination" "$CONTENT" "limit"
+assert_contains "documents resourceId" "$CONTENT" "resourceId"
+assert_contains "documents resourceAttributes" "$CONTENT" "resourceAttributes"
 
 echo ""
 echo "=== sync SKILL.md tests ==="
