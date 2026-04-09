@@ -24,6 +24,7 @@ assert_contains "mentions connections" "$CONTENT" "connections"
 assert_contains "mentions grep or search" "$CONTENT" "grep\|Grep\|search"
 assert_contains "mentions compare or diff" "$CONTENT" "compare\|diff"
 assert_contains "mentions space filter" "$CONTENT" "space"
+assert_contains "uses index path field" "$CONTENT" "path"
 assert_contains "teaches offline usage" "$CONTENT" "no API\|offline\|local"
 
 test_summary

@@ -36,7 +36,7 @@ If multiple apps match a partial name, list the matches and ask which one.
 **Find a measure by name or expression:**
 
 Use Grep to search across all `measures.json` files:
-- By name: grep for the measure name in `.qlik-sync/apps/*/measures.json`
+- By name: grep for the measure name across all `measures.json` files under `.qlik-sync/`
 - By expression: grep for the expression pattern (e.g., `Sum(Amount)`)
 
 When showing results, include the app name (from index), measure title, and full expression (`qMeasure.qDef`).
@@ -66,11 +66,11 @@ Grep across all `connections.yml` files for connection names, types, or connecti
 
 **Show load script:**
 
-Read `.qlik-sync/apps/<app-id>/script.qvs` and display with QVS syntax highlighting (use ```qvs code fence).
+Read `.qlik-sync/<path>/script.qvs` where `<path>` is from the app's `path` field in `index.json` and display with QVS syntax highlighting (use ```qvs code fence).
 
 **List measures:**
 
-Read `.qlik-sync/apps/<app-id>/measures.json` and present as a table:
+Read `.qlik-sync/<path>/measures.json` where `<path>` is from `index.json` and present as a table:
 
 | Name | Expression | Description |
 |------|-----------|-------------|
@@ -78,7 +78,7 @@ Read `.qlik-sync/apps/<app-id>/measures.json` and present as a table:
 
 **List dimensions:**
 
-Read `.qlik-sync/apps/<app-id>/dimensions.json` and present as a table:
+Read `.qlik-sync/<path>/dimensions.json` where `<path>` is from `index.json` and present as a table:
 
 | Name | Field(s) | Description |
 |------|----------|-------------|
@@ -86,7 +86,7 @@ Read `.qlik-sync/apps/<app-id>/dimensions.json` and present as a table:
 
 **List variables:**
 
-Read `.qlik-sync/apps/<app-id>/variables.json` and present as a table:
+Read `.qlik-sync/<path>/variables.json` where `<path>` is from `index.json` and present as a table:
 
 | Name | Definition | Comment |
 |------|-----------|---------|
@@ -94,11 +94,11 @@ Read `.qlik-sync/apps/<app-id>/variables.json` and present as a table:
 
 **Show connections:**
 
-Read `.qlik-sync/apps/<app-id>/connections.yml` and list name, type, and connection string.
+Read `.qlik-sync/<path>/connections.yml` where `<path>` is from `index.json` and list name, type, and connection string.
 
 **Show sheet objects:**
 
-List files in `.qlik-sync/apps/<app-id>/objects/` and read individual sheets to show their structure.
+List files in `.qlik-sync/<path>/objects/` where `<path>` is from `index.json` and read individual sheets to show their structure.
 
 ### Compare Across Apps
 
