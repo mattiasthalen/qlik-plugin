@@ -1,0 +1,52 @@
+[
+  {
+    "id": "app-001",
+    "name": "Sales Dashboard",
+    "spaceId": "space-001",
+    "owner": "user@company.com",
+    "description": "Monthly sales KPIs",
+    "tags": ["finance", "monthly"],
+    "published": true,
+    "lastReloadTime": "2026-04-08T02:00:00Z"
+  },
+  {
+    "id": "app-002",
+    "name": "HR Analytics",
+    "spaceId": "space-002",
+    "owner": "hr-admin@company.com",
+    "description": "Employee metrics",
+    "tags": ["hr"],
+    "published": true,
+    "lastReloadTime": "2026-04-07T12:00:00Z"
+  },
+  {
+    "id": "app-003",
+    "name": "Sales Dashboard DEV",
+    "spaceId": "space-001",
+    "owner": "user@company.com",
+    "description": "Dev copy of Sales Dashboard",
+    "tags": ["finance", "dev"],
+    "published": false,
+    "lastReloadTime": "2026-04-09T09:00:00Z"
+  },
+  {
+    "id": "app-004",
+    "name": "Finance Extract",
+    "spaceId": "space-001",
+    "owner": "etl@company.com",
+    "description": "QVD extract for finance data",
+    "tags": ["finance", "extract"],
+    "published": false,
+    "lastReloadTime": "2026-04-09T01:00:00Z"
+  },
+  {
+    "id": "app-005",
+    "name": "HR Transform",
+    "spaceId": "space-002",
+    "owner": "hr-admin@company.com",
+    "description": "Transform layer for HR",
+    "tags": ["hr", "transform"],
+    "published": false,
+    "lastReloadTime": "2026-04-08T06:00:00Z"
+  }
+]

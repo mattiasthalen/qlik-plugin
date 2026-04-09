@@ -1,0 +1,8 @@
+- name: Finance_DB
+  type: folder
+  connectionString: "/data/finance/"
+  space: ""
+- name: HR_Source
+  type: ODBC
+  connectionString: "CUSTOM CONNECT TO \"provider=ODBC;dsn=HR_Prod\""
+  space: ""

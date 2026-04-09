@@ -1,0 +1,18 @@
+{
+  "qInfo": { "qId": "sheet-abc123", "qType": "sheet" },
+  "qMeta": { "title": "Overview", "description": "Main KPI overview sheet" },
+  "qProperty": {
+    "rank": 0,
+    "columns": 24,
+    "rows": 12,
+    "cells": [
+      {
+        "name": "KPI - Revenue",
+        "type": "kpi",
+        "col": 0, "row": 0,
+        "colspan": 6, "rowspan": 3,
+        "bounds": { "x": 0, "y": 0, "width": 25, "height": 25 }
+      }
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+[
+  {
+    "id": "space-001",
+    "name": "Finance Prod",
+    "type": "managed",
+    "ownerId": "user-001"
+  },
+  {
+    "id": "space-002",
+    "name": "HR Dev",
+    "type": "shared",
+    "ownerId": "user-002"
+  }
+]

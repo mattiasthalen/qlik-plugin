@@ -1,0 +1,25 @@
+// Sales Dashboard Load Script
+SET ThousandSep=',';
+SET DecimalSep='.';
+SET MoneyFormat='$#,##0.00';
+
+LIB CONNECT TO 'Finance_DB';
+
+Sales:
+LOAD
+    OrderID,
+    CustomerID,
+    ProductID,
+    Amount,
+    OrderDate
+FROM [lib://Finance_DB/Sales.qvd] (qvd);
+
+Calendar:
+LOAD
+    Date,
+    Year(Date) AS Year,
+    Month(Date) AS Month,
+    Day(Date) AS Day
+RESIDENT Sales;
+
+DROP FIELD Date FROM Sales;

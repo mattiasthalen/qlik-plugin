@@ -1,0 +1,7 @@
+[
+  {
+    "name": "test-tenant",
+    "server": "https://test-tenant.us.qlikcloud.com",
+    "current": true
+  }
+]
