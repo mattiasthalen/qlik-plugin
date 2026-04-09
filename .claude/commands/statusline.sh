@@ -53,7 +53,7 @@ fi
 if [ -n "${GIT_BRANCH+isset}" ]; then
   branch="$GIT_BRANCH"
 else
-  branch="$(git branch --show-current 2>/dev/null)"
+  branch="$(git branch --show-current 2>/dev/null || true)"
 fi
 if [ -z "$branch" ]; then
   branch="${GIT_SHA:-$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")}"

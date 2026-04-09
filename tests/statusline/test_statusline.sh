@@ -29,6 +29,10 @@ assert_contains "normal repo shows basename" "primer (" "$result"
 result=$(CLAUDE_PROJECT_DIR="/workspaces/primer" GIT_TOPLEVEL="/workspaces/primer/.claude/worktrees/feat+my-feature" GIT_DIRTY="" GIT_UNTRACKED="" GIT_NO_UPSTREAM="1" bash "$SCRIPT" <<< '{"model":{"id":"claude-opus-4-6"},"context_window":{"used_percentage":0,"context_window_size":200000},"cost":{"total_cost_usd":0}}')
 assert_contains "worktree shows project > worktree" "primer > feat+my-feature (" "$result"
 
+# Non-git directory — script still runs, shows path with fallback branch
+result=$(CLAUDE_PROJECT_DIR="/tmp/myproject" GIT_TOPLEVEL="/tmp/myproject" GIT_BRANCH="" GIT_SHA="unknown" GIT_DIRTY="" GIT_UNTRACKED="" GIT_NO_UPSTREAM="1" bash "$SCRIPT" <<< '{"model":{"id":"claude-opus-4-6"},"context_window":{"used_percentage":0,"context_window_size":200000},"cost":{"total_cost_usd":0}}')
+assert_contains "non-git dir shows path" "myproject (" "$result"
+
 # --- Branch display ---
 echo "Branch display:"
 
