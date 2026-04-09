@@ -55,7 +55,8 @@ SPACES_JSON="$(qlik space ls --json)"
 SPACE_LOOKUP="$(mktemp)"
 USER_CACHE="$(mktemp)"
 INDEX_ENTRIES="$(mktemp)"
-trap 'rm -f "$SPACE_LOOKUP" "$USER_CACHE" "$INDEX_ENTRIES"' EXIT
+APPS_FILE="$(mktemp)"
+trap 'rm -f "$SPACE_LOOKUP" "$USER_CACHE" "$INDEX_ENTRIES" "$APPS_FILE"' EXIT
 
 # Build space lookup: id -> name\ttype
 echo "$SPACES_JSON" | jq -r '.[] | "\(.id)\t\(.name)\t\(.type)"' > "$SPACE_LOOKUP"
@@ -66,7 +67,7 @@ resolve_space_name() {
     echo ""
     return
   fi
-  grep "^${space_id}	" "$SPACE_LOOKUP" | cut -f2
+  grep "^${space_id}	" "$SPACE_LOOKUP" 2>/dev/null | cut -f2 || true
 }
 
 resolve_space_type() {
@@ -76,7 +77,7 @@ resolve_space_type() {
     return
   fi
   local stype
-  stype="$(grep "^${space_id}	" "$SPACE_LOOKUP" | cut -f3)"
+  stype="$(grep "^${space_id}	" "$SPACE_LOOKUP" 2>/dev/null | cut -f3 || true)"
   if [ -n "$stype" ]; then
     echo "$stype"
   else
@@ -87,13 +88,13 @@ resolve_space_type() {
 resolve_username() {
   local user_id="$1"
   local cached
-  cached="$(grep "^${user_id}	" "$USER_CACHE" 2>/dev/null | cut -f2)"
+  cached="$(grep "^${user_id}	" "$USER_CACHE" 2>/dev/null | cut -f2 || true)"
   if [ -n "$cached" ]; then
     echo "$cached"
     return
   fi
   local uname
-  uname="$(qlik user get "$user_id" --json 2>/dev/null | jq -r '.name // .email // empty')"
+  uname="$(qlik user get "$user_id" --json < /dev/null 2>/dev/null | jq -r '.name // .email // empty')"
   if [ -z "$uname" ]; then
     uname="$user_id"
   fi
@@ -108,27 +109,27 @@ normalize_app_type() {
 # --- Resolve space ID for space filter ---
 SPACE_ID_FILTER=""
 if [ -n "$SPACE_FILTER" ]; then
-  SPACE_ID_FILTER="$(grep "	${SPACE_FILTER}	" "$SPACE_LOOKUP" | cut -f1)"
+  SPACE_ID_FILTER="$(grep "	${SPACE_FILTER}	" "$SPACE_LOOKUP" 2>/dev/null | cut -f1 || true)"
   if [ -z "$SPACE_ID_FILTER" ]; then
     echo "Error: space '$SPACE_FILTER' not found." >&2
     exit 1
   fi
 fi
 
-# --- Fetch apps ---
+# --- Fetch apps (write to temp file to avoid bash variable size/escaping issues) ---
 if [ -n "$ID_FILTER" ]; then
-  APPS_JSON="$(qlik app ls --json --limit 1000 | jq "[.[] | select(.resourceId == \"$ID_FILTER\")]")"
+  qlik app ls --json --limit 1000 | jq "[.[] | select(.resourceId == \"$ID_FILTER\")]" > "$APPS_FILE"
 elif [ -n "$SPACE_ID_FILTER" ]; then
-  APPS_JSON="$(qlik app ls --json --limit 1000 --spaceId "$SPACE_ID_FILTER")"
+  qlik app ls --json --limit 1000 --spaceId "$SPACE_ID_FILTER" > "$APPS_FILE"
 else
-  APPS_JSON="$(qlik app ls --json --limit 1000)"
+  qlik app ls --json --limit 1000 > "$APPS_FILE"
 fi
 
 if [ -n "$APP_FILTER" ]; then
-  APPS_JSON="$(echo "$APPS_JSON" | jq "[.[] | select(.name | test(\"$APP_FILTER\"))]")"
+  jq "[.[] | select(.name | test(\"$APP_FILTER\"))]" "$APPS_FILE" > "${APPS_FILE}.tmp" && mv "${APPS_FILE}.tmp" "$APPS_FILE"
 fi
 
-APP_COUNT="$(echo "$APPS_JSON" | jq 'length')"
+APP_COUNT="$(jq 'length' "$APPS_FILE")"
 
 if [ "$APP_COUNT" -eq 0 ]; then
   echo "No apps found matching filters."
@@ -136,7 +137,7 @@ if [ "$APP_COUNT" -eq 0 ]; then
 fi
 
 # Get tenant ID from first app
-TENANT_ID="$(echo "$APPS_JSON" | jq -r '.[0].tenantId // empty')"
+TENANT_ID="$(jq -r '.[0].tenantId // empty' "$APPS_FILE")"
 TENANT_DIR="$TENANT_DOMAIN ($TENANT_ID)"
 
 PARTIAL=false
@@ -158,15 +159,15 @@ IDX=0
 while IFS= read -r app_line; do
   IDX=$((IDX + 1))
 
-  resource_id="$(echo "$app_line" | jq -r '.resourceId')"
-  app_name="$(echo "$app_line" | jq -r '.name')"
-  space_id="$(echo "$app_line" | jq -r '.resourceAttributes.spaceId // empty')"
-  owner_id="$(echo "$app_line" | jq -r '.resourceAttributes.ownerId // empty')"
-  description="$(echo "$app_line" | jq -r '.resourceAttributes.description // empty')"
-  published="$(echo "$app_line" | jq -r '.resourceAttributes.published // false')"
-  last_reload="$(echo "$app_line" | jq -r '.resourceAttributes.lastReloadTime // empty')"
-  usage="$(echo "$app_line" | jq -r '.resourceAttributes.usage // "ANALYTICS"')"
-  tags="$(echo "$app_line" | jq -c '[.meta.tags[]?.name]')"
+  resource_id="$(jq -r '.resourceId' <<< "$app_line")"
+  app_name="$(jq -r '.name' <<< "$app_line")"
+  space_id="$(jq -r '.resourceAttributes.spaceId // empty' <<< "$app_line")"
+  owner_id="$(jq -r '.resourceAttributes.ownerId // empty' <<< "$app_line")"
+  description="$(jq -r '.resourceAttributes.description // empty' <<< "$app_line")"
+  published="$(jq -r '.resourceAttributes.published // false' <<< "$app_line")"
+  last_reload="$(jq -r '.resourceAttributes.lastReloadTime // empty' <<< "$app_line")"
+  usage="$(jq -r '.resourceAttributes.usage // "ANALYTICS"' <<< "$app_line")"
+  tags="$(jq -c '[.meta.tags[]?.name]' <<< "$app_line")"
 
   space_type="$(resolve_space_type "$space_id")"
   space_name="$(resolve_space_name "$space_id")"
@@ -206,7 +207,7 @@ while IFS= read -r app_line; do
   else
     echo "[$IDX/$APP_COUNT] Syncing: $display_space / $app_name..."
     mkdir -p "$full_path"
-    if qlik app unbuild --app "$resource_id" --dir "$full_path" >/dev/null 2>&1; then
+    if qlik app unbuild --app "$resource_id" --dir "$full_path" < /dev/null >/dev/null 2>&1; then
       SYNCED=$((SYNCED + 1))
     else
       ERRORS=$((ERRORS + 1))
@@ -238,20 +239,21 @@ $(jq -n \
   '{($id): {name: $name, space: $space, spaceId: $spaceId, spaceType: $spaceType, appType: $appType, owner: $owner, ownerName: $ownerName, description: $desc, tags: $tags, published: $published, lastReloadTime: $reload, path: $path}}')
 ENTRY
 
-done < <(echo "$APPS_JSON" | jq -c '.[]')
+done < <(jq -c '.[]' "$APPS_FILE")
 
 # --- Build index.json ---
 INDEX_FILE=".qlik-sync/index.json"
 NOW="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
-APPS_OBJ="$(jq -s 'add // {}' "$INDEX_ENTRIES")"
+APPS_OBJ_FILE="$(mktemp)"
+jq -s 'add // {}' "$INDEX_ENTRIES" > "$APPS_OBJ_FILE"
 
 if [ "$PARTIAL" = true ] && [ -f "$INDEX_FILE" ]; then
-  EXISTING_APPS="$(jq '.apps // {}' "$INDEX_FILE")"
-  APPS_OBJ="$(echo "$EXISTING_APPS" "$APPS_OBJ" | jq -s '.[0] * .[1]')"
+  jq --slurpfile new "$APPS_OBJ_FILE" '(.apps // {}) + $new[0]' "$INDEX_FILE" > "${APPS_OBJ_FILE}.merged"
+  mv "${APPS_OBJ_FILE}.merged" "$APPS_OBJ_FILE"
 fi
 
-FINAL_COUNT="$(echo "$APPS_OBJ" | jq 'length')"
+FINAL_COUNT="$(jq 'length' "$APPS_OBJ_FILE")"
 
 jq -n \
   --arg lastSync "$NOW" \
@@ -260,9 +262,11 @@ jq -n \
   --arg tenant "$TENANT_DOMAIN" \
   --arg tenantId "$TENANT_ID" \
   --argjson appCount "$FINAL_COUNT" \
-  --argjson apps "$APPS_OBJ" \
-  '{lastSync: $lastSync, context: $context, server: $server, tenant: $tenant, tenantId: $tenantId, appCount: $appCount, apps: $apps}' \
+  --slurpfile apps "$APPS_OBJ_FILE" \
+  '{lastSync: $lastSync, context: $context, server: $server, tenant: $tenant, tenantId: $tenantId, appCount: $appCount, apps: $apps[0]}' \
   > "$INDEX_FILE"
+
+rm -f "$APPS_OBJ_FILE"
 
 # --- Update config.json ---
 jq --arg ts "$NOW" '.lastSync = $ts' "$CONFIG_FILE" > "${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
