@@ -17,4 +17,27 @@ DESCRIPTION=$(jq -r '.description' "$REPO_ROOT/.claude-plugin/plugin.json")
 assert_contains "description mentions Qlik Sense" "$DESCRIPTION" "Qlik Sense"
 assert_contains "description mentions load scripts" "$DESCRIPTION" "load scripts"
 
+echo ""
+echo "=== setup SKILL.md tests ==="
+
+SETUP_SKILL="$REPO_ROOT/skills/setup/SKILL.md"
+
+assert_file_exists "setup SKILL.md exists" "$SETUP_SKILL"
+
+# Frontmatter checks
+FRONTMATTER=$(sed -n '/^---$/,/^---$/p' "$SETUP_SKILL")
+assert_contains "frontmatter has name" "$FRONTMATTER" "name: setup"
+assert_contains "frontmatter has description" "$FRONTMATTER" "description:"
+
+# Content checks — skill should teach these key behaviors
+CONTENT=$(cat "$SETUP_SKILL")
+assert_contains "mentions qlik prerequisite" "$CONTENT" "which qlik"
+assert_contains "mentions jq prerequisite" "$CONTENT" "which jq"
+assert_contains "mentions context create" "$CONTENT" "qlik context create"
+assert_contains "mentions context login" "$CONTENT" "qlik context login"
+assert_contains "mentions connectivity test" "$CONTENT" "qlik app ls"
+assert_contains "mentions .qlik-sync directory" "$CONTENT" ".qlik-sync"
+assert_contains "mentions config.json" "$CONTENT" "config.json"
+assert_contains "mentions .gitignore" "$CONTENT" ".gitignore"
+
 test_summary
