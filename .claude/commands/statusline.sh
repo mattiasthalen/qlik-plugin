@@ -8,7 +8,7 @@ model_id=$(echo "$input" | jq -r '.model.id')
 # claude-opus-4-6 → Opus 4.6
 # claude-sonnet-4-6 → Sonnet 4.6
 # claude-haiku-4-5-20251001 → Haiku 4.5
-model_name=$(echo "$model_id" | sed -E 's/^claude-//; s/-[0-9]{8,}$//; s/-/ /g' | awk '{
+model_name=$(echo "$model_id" | sed -E 's/\[.*\]$//; s/^claude-//; s/-[0-9]{8,}$//; s/-/ /g' | awk '{
   in_version=0
   for (i=1; i<=NF; i++) {
     if ($i ~ /^[0-9]+$/) {
