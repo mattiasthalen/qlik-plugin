@@ -36,6 +36,8 @@ Stop and wait for the user to install missing tools before continuing.
 qlik context ls
 ```
 
+Note: `qlik context ls` outputs a table by default (not JSON). Look for the row marked with `*` in the `current` column to identify the active context.
+
 If output shows an existing context, ask the user:
 > You already have a qlik context configured: `<context-name>` pointing to `<server>`. Do you want to use this one, or create a new context?
 
@@ -46,8 +48,10 @@ If they want to reuse it, skip to Step 4.
 Ask the user for their Qlik Cloud tenant URL (e.g., `https://mytenant.us.qlikcloud.com`).
 
 ```bash
-qlik context create --server https://<tenant-url>
+qlik context create <context-name> --server https://<tenant-url>
 ```
+
+Ask the user to pick a context name (e.g., their tenant name like `my-tenant`) or use the tenant subdomain.
 
 Then start the OAuth login flow:
 
@@ -65,6 +69,20 @@ Wait for user confirmation before continuing.
 - **Browser didn't open:** Run `qlik context login --help` for options, or try opening the URL manually.
 - **Login failed:** Clear browser cookies for the tenant domain and retry.
 - **Wrong tenant:** Run `qlik context ls` to verify the server URL, then `qlik context create` again with the correct URL.
+
+### Alternative: API Key Auth
+
+If OAuth browser login is not available (e.g., headless environment), use an API key instead:
+
+1. Ask the user to generate an API key at `https://<tenant-url>/settings/api-keys`
+   - Requires the "Manage API keys" permission (Developer role or custom role)
+2. Create the context with the key:
+
+```bash
+qlik context create <context-name> --server https://<tenant-url> --api-key <API_KEY>
+```
+
+3. Skip to Step 4 (Test Connectivity).
 
 ## Step 4: Test Connectivity
 
