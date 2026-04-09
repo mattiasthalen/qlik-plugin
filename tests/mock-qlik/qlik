@@ -1,0 +1,92 @@
+#!/bin/bash
+# Mock qlik binary for testing
+# Returns canned responses based on subcommand
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+FIXTURES_DIR="$SCRIPT_DIR/../fixtures"
+
+case "$1" in
+  version)
+    echo "qlik version 2.24.0"
+    ;;
+  context)
+    case "$2" in
+      ls)
+        cat "$FIXTURES_DIR/context-ls-response.json"
+        ;;
+      create)
+        echo "Context created successfully"
+        ;;
+      login)
+        echo "Login successful"
+        ;;
+      *)
+        echo "Unknown context subcommand: $2" >&2
+        exit 1
+        ;;
+    esac
+    ;;
+  app)
+    case "$2" in
+      ls)
+        # Check for --spaceId filter
+        SPACE_FILTER=""
+        for arg in "$@"; do
+          case "$arg" in
+            --spaceId) SPACE_FILTER="next" ;;
+            *)
+              if [ "$SPACE_FILTER" = "next" ]; then
+                SPACE_FILTER="$arg"
+              fi
+              ;;
+          esac
+        done
+        if [ -n "$SPACE_FILTER" ] && [ "$SPACE_FILTER" != "next" ]; then
+          jq "[.[] | select(.spaceId == \"$SPACE_FILTER\")]" "$FIXTURES_DIR/app-ls-response.json"
+        else
+          cat "$FIXTURES_DIR/app-ls-response.json"
+        fi
+        ;;
+      unbuild)
+        # Parse --app and --dir flags
+        APP_ID=""
+        DIR=""
+        while [ $# -gt 0 ]; do
+          case "$1" in
+            --app) APP_ID="$2"; shift 2 ;;
+            --dir) DIR="$2"; shift 2 ;;
+            *) shift ;;
+          esac
+        done
+        if [ -z "$APP_ID" ] || [ -z "$DIR" ]; then
+          echo "Error: --app and --dir required" >&2
+          exit 1
+        fi
+        mkdir -p "$DIR"
+        cp -r "$FIXTURES_DIR/unbuild-output/"* "$DIR/"
+        # Stamp the app ID into config.yml for verification
+        echo "appId: $APP_ID" > "$DIR/config.yml"
+        echo "Unbuild complete: $APP_ID -> $DIR"
+        ;;
+      *)
+        echo "Unknown app subcommand: $2" >&2
+        exit 1
+        ;;
+    esac
+    ;;
+  space)
+    case "$2" in
+      ls)
+        cat "$FIXTURES_DIR/space-ls-response.json"
+        ;;
+      *)
+        echo "Unknown space subcommand: $2" >&2
+        exit 1
+        ;;
+    esac
+    ;;
+  *)
+    echo "Unknown command: $1" >&2
+    exit 1
+    ;;
+esac
