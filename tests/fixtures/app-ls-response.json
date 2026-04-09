@@ -1,52 +1,206 @@
 [
   {
-    "id": "app-001",
     "name": "Sales Dashboard",
-    "spaceId": "space-001",
-    "owner": "user@company.com",
-    "description": "Monthly sales KPIs",
-    "tags": ["finance", "monthly"],
-    "published": true,
-    "lastReloadTime": "2026-04-08T02:00:00Z"
+    "resourceId": "app-001",
+    "resourceType": "app",
+    "resourceAttributes": {
+      "id": "app-001",
+      "name": "Sales Dashboard",
+      "spaceId": "space-001",
+      "owner": "auth0|user001hash",
+      "ownerId": "user-001",
+      "description": "Monthly sales KPIs",
+      "published": true,
+      "lastReloadTime": "2026-04-08T02:00:00Z",
+      "createdDate": "2025-01-15T10:00:00Z",
+      "modifiedDate": "2026-04-08T14:30:00Z",
+      "usage": "ANALYTICS",
+      "hasSectionAccess": false
+    },
+    "resourceCreatedAt": "2025-01-15T10:00:00Z",
+    "resourceUpdatedAt": "2026-04-08T14:30:00Z",
+    "ownerId": "user-001",
+    "creatorId": "user-001",
+    "tenantId": "test-tenant-id",
+    "meta": {
+      "tags": [
+        { "id": "tag-fin", "name": "finance" },
+        { "id": "tag-mon", "name": "monthly" }
+      ],
+      "collections": [],
+      "isFavorited": false,
+      "actions": []
+    },
+    "links": {
+      "self": { "href": "https://test-tenant.us.qlikcloud.com/api/v1/items/item-001" },
+      "open": { "href": "https://test-tenant.us.qlikcloud.com/sense/app/app-001" }
+    },
+    "collectionIds": [],
+    "id": "item-001",
+    "createdAt": "2025-01-15T10:00:00Z",
+    "updatedAt": "2026-04-08T14:30:00Z"
   },
   {
-    "id": "app-002",
     "name": "HR Analytics",
-    "spaceId": "space-002",
-    "owner": "hr-admin@company.com",
-    "description": "Employee metrics",
-    "tags": ["hr"],
-    "published": true,
-    "lastReloadTime": "2026-04-07T12:00:00Z"
+    "resourceId": "app-002",
+    "resourceType": "app",
+    "resourceAttributes": {
+      "id": "app-002",
+      "name": "HR Analytics",
+      "spaceId": "space-002",
+      "owner": "auth0|hradminhash",
+      "ownerId": "user-002",
+      "description": "Employee metrics",
+      "published": true,
+      "lastReloadTime": "2026-04-07T12:00:00Z",
+      "createdDate": "2025-03-01T09:00:00Z",
+      "modifiedDate": "2026-04-07T12:30:00Z",
+      "usage": "ANALYTICS",
+      "hasSectionAccess": false
+    },
+    "resourceCreatedAt": "2025-03-01T09:00:00Z",
+    "resourceUpdatedAt": "2026-04-07T12:30:00Z",
+    "ownerId": "user-002",
+    "creatorId": "user-002",
+    "tenantId": "test-tenant-id",
+    "meta": {
+      "tags": [
+        { "id": "tag-hr", "name": "hr" }
+      ],
+      "collections": [],
+      "isFavorited": false,
+      "actions": []
+    },
+    "links": {
+      "self": { "href": "https://test-tenant.us.qlikcloud.com/api/v1/items/item-002" },
+      "open": { "href": "https://test-tenant.us.qlikcloud.com/sense/app/app-002" }
+    },
+    "collectionIds": [],
+    "id": "item-002",
+    "createdAt": "2025-03-01T09:00:00Z",
+    "updatedAt": "2026-04-07T12:30:00Z"
   },
   {
-    "id": "app-003",
     "name": "Sales Dashboard DEV",
-    "spaceId": "space-001",
-    "owner": "user@company.com",
-    "description": "Dev copy of Sales Dashboard",
-    "tags": ["finance", "dev"],
-    "published": false,
-    "lastReloadTime": "2026-04-09T09:00:00Z"
+    "resourceId": "app-003",
+    "resourceType": "app",
+    "resourceAttributes": {
+      "id": "app-003",
+      "name": "Sales Dashboard DEV",
+      "spaceId": "space-001",
+      "owner": "auth0|user001hash",
+      "ownerId": "user-001",
+      "description": "Dev copy of Sales Dashboard",
+      "published": false,
+      "lastReloadTime": "2026-04-09T09:00:00Z",
+      "createdDate": "2025-06-01T08:00:00Z",
+      "modifiedDate": "2026-04-09T09:30:00Z",
+      "usage": "ANALYTICS",
+      "hasSectionAccess": false
+    },
+    "resourceCreatedAt": "2025-06-01T08:00:00Z",
+    "resourceUpdatedAt": "2026-04-09T09:30:00Z",
+    "ownerId": "user-001",
+    "creatorId": "user-001",
+    "tenantId": "test-tenant-id",
+    "meta": {
+      "tags": [
+        { "id": "tag-fin", "name": "finance" },
+        { "id": "tag-dev", "name": "dev" }
+      ],
+      "collections": [],
+      "isFavorited": false,
+      "actions": []
+    },
+    "links": {
+      "self": { "href": "https://test-tenant.us.qlikcloud.com/api/v1/items/item-003" },
+      "open": { "href": "https://test-tenant.us.qlikcloud.com/sense/app/app-003" }
+    },
+    "collectionIds": [],
+    "id": "item-003",
+    "createdAt": "2025-06-01T08:00:00Z",
+    "updatedAt": "2026-04-09T09:30:00Z"
   },
   {
-    "id": "app-004",
     "name": "Finance Extract",
-    "spaceId": "space-001",
-    "owner": "etl@company.com",
-    "description": "QVD extract for finance data",
-    "tags": ["finance", "extract"],
-    "published": false,
-    "lastReloadTime": "2026-04-09T01:00:00Z"
+    "resourceId": "app-004",
+    "resourceType": "app",
+    "resourceAttributes": {
+      "id": "app-004",
+      "name": "Finance Extract",
+      "spaceId": "space-001",
+      "owner": "auth0|etlhash",
+      "ownerId": "user-003",
+      "description": "QVD extract for finance data",
+      "published": false,
+      "lastReloadTime": "2026-04-09T01:00:00Z",
+      "createdDate": "2025-02-01T07:00:00Z",
+      "modifiedDate": "2026-04-09T01:30:00Z",
+      "usage": "ANALYTICS",
+      "hasSectionAccess": false
+    },
+    "resourceCreatedAt": "2025-02-01T07:00:00Z",
+    "resourceUpdatedAt": "2026-04-09T01:30:00Z",
+    "ownerId": "user-003",
+    "creatorId": "user-003",
+    "tenantId": "test-tenant-id",
+    "meta": {
+      "tags": [
+        { "id": "tag-fin", "name": "finance" },
+        { "id": "tag-ext", "name": "extract" }
+      ],
+      "collections": [],
+      "isFavorited": false,
+      "actions": []
+    },
+    "links": {
+      "self": { "href": "https://test-tenant.us.qlikcloud.com/api/v1/items/item-004" },
+      "open": { "href": "https://test-tenant.us.qlikcloud.com/sense/app/app-004" }
+    },
+    "collectionIds": [],
+    "id": "item-004",
+    "createdAt": "2025-02-01T07:00:00Z",
+    "updatedAt": "2026-04-09T01:30:00Z"
   },
   {
-    "id": "app-005",
     "name": "HR Transform",
-    "spaceId": "space-002",
-    "owner": "hr-admin@company.com",
-    "description": "Transform layer for HR",
-    "tags": ["hr", "transform"],
-    "published": false,
-    "lastReloadTime": "2026-04-08T06:00:00Z"
+    "resourceId": "app-005",
+    "resourceType": "app",
+    "resourceAttributes": {
+      "id": "app-005",
+      "name": "HR Transform",
+      "spaceId": "space-002",
+      "owner": "auth0|hradminhash",
+      "ownerId": "user-002",
+      "description": "Transform layer for HR",
+      "published": false,
+      "lastReloadTime": "2026-04-08T06:00:00Z",
+      "createdDate": "2025-04-01T11:00:00Z",
+      "modifiedDate": "2026-04-08T06:30:00Z",
+      "usage": "ANALYTICS",
+      "hasSectionAccess": false
+    },
+    "resourceCreatedAt": "2025-04-01T11:00:00Z",
+    "resourceUpdatedAt": "2026-04-08T06:30:00Z",
+    "ownerId": "user-002",
+    "creatorId": "user-002",
+    "tenantId": "test-tenant-id",
+    "meta": {
+      "tags": [
+        { "id": "tag-hr", "name": "hr" },
+        { "id": "tag-xfm", "name": "transform" }
+      ],
+      "collections": [],
+      "isFavorited": false,
+      "actions": []
+    },
+    "links": {
+      "self": { "href": "https://test-tenant.us.qlikcloud.com/api/v1/items/item-005" },
+      "open": { "href": "https://test-tenant.us.qlikcloud.com/sense/app/app-005" }
+    },
+    "collectionIds": [],
+    "id": "item-005",
+    "createdAt": "2025-04-01T11:00:00Z",
+    "updatedAt": "2026-04-08T06:30:00Z"
   }
 ]

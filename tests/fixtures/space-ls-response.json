@@ -3,12 +3,40 @@
     "id": "space-001",
     "name": "Finance Prod",
     "type": "managed",
-    "ownerId": "user-001"
+    "ownerId": "user-001",
+    "tenantId": "test-tenant-id",
+    "description": "",
+    "meta": {
+      "actions": ["create", "read", "update", "delete"],
+      "roles": [],
+      "assignableRoles": ["consumer", "producer", "facilitator"]
+    },
+    "links": {
+      "self": { "href": "https://test-tenant.us.qlikcloud.com/api/v1/spaces/space-001" },
+      "assignments": { "href": "https://test-tenant.us.qlikcloud.com/api/v1/spaces/space-001/assignments" }
+    },
+    "createdAt": "2024-06-01T10:00:00Z",
+    "createdBy": "user-001",
+    "updatedAt": "2024-06-01T10:00:00Z"
   },
   {
     "id": "space-002",
     "name": "HR Dev",
     "type": "shared",
-    "ownerId": "user-002"
+    "ownerId": "user-002",
+    "tenantId": "test-tenant-id",
+    "description": "",
+    "meta": {
+      "actions": ["create", "read", "update", "delete"],
+      "roles": [],
+      "assignableRoles": ["consumer", "producer"]
+    },
+    "links": {
+      "self": { "href": "https://test-tenant.us.qlikcloud.com/api/v1/spaces/space-002" },
+      "assignments": { "href": "https://test-tenant.us.qlikcloud.com/api/v1/spaces/space-002/assignments" }
+    },
+    "createdAt": "2024-08-15T14:00:00Z",
+    "createdBy": "user-002",
+    "updatedAt": "2024-08-15T14:00:00Z"
   }
 ]
