@@ -1,0 +1,9 @@
+[
+  {
+    "id": "measure-001",
+    "name": "Total Sales",
+    "description": "Sum of all sales amounts",
+    "expression": "Sum(Amount)",
+    "label": "Total Sales"
+  }
+]
