@@ -152,8 +152,11 @@ assert_json_field "id filter correct app" "$PREP_JSON4" '.apps[0].resourceId' "a
 echo ""
 echo "--- Test 7: Resume marks skip ---"
 WORKDIR5="$(setup_workdir)"
+WORKDIR5_HASH="$(echo "$WORKDIR5" | md5sum | cut -c1-8)"
 # First run to create files
 (cd "$WORKDIR5" && PATH="$MOCK_DIR:$PATH" bash "$REPO_ROOT/skills/sync/scripts/sync-tenant.sh" 2>/dev/null) >/dev/null
+# Clear any stale cache so skip detection runs fresh
+rm -f "/tmp/qlik-sync-prep-test-ctx-${WORKDIR5_HASH}.json"
 # Now prep should mark all as skip
 OUTPUT5="$(run_prep "$WORKDIR5")"
 PREP_JSON5="$TMPDIR_BASE/prep-skip.json"
@@ -175,11 +178,10 @@ echo ""
 echo "--- Test 9: Cache hit ---"
 WORKDIR7="$(setup_workdir)"
 WORKDIR7_HASH="$(echo "$WORKDIR7" | md5sum | cut -c1-8)"
-rm -f /tmp/qlik-sync-prep-test-ctx-${WORKDIR7_HASH}-*.json
+CACHE_FILE="/tmp/qlik-sync-prep-test-ctx-${WORKDIR7_HASH}.json"
+rm -f "$CACHE_FILE"
 # Run once to populate cache
 FIRST_OUTPUT="$(run_prep "$WORKDIR7")"
-# Cache file should exist (pattern: test-ctx-<workdir_hash>-<sync_state_hash>)
-CACHE_FILE="$(ls /tmp/qlik-sync-prep-test-ctx-${WORKDIR7_HASH}-*.json 2>/dev/null | head -1)"
 TESTS_RUN=$((TESTS_RUN + 1))
 if [ -f "$CACHE_FILE" ]; then
   # Run again — should return cached output

@@ -60,8 +60,7 @@ if [ -n "$SPACE_FILTER" ]; then CACHE_KEY="${CACHE_KEY}-s-${SPACE_FILTER}"; fi
 if [ -n "$APP_FILTER" ]; then CACHE_KEY="${CACHE_KEY}-a-${APP_FILTER}"; fi
 if [ -n "$ID_FILTER" ]; then CACHE_KEY="${CACHE_KEY}-i-${ID_FILTER}"; fi
 WORKDIR_HASH="$(pwd | md5sum | cut -c1-8)"
-SYNC_STATE_HASH="$(find .qlik-sync -name "config.yml" 2>/dev/null | sort | md5sum | cut -c1-8)"
-CACHE_FILE="/tmp/qlik-sync-prep-${CACHE_KEY}-${WORKDIR_HASH}-${SYNC_STATE_HASH}.json"
+CACHE_FILE="/tmp/qlik-sync-prep-${CACHE_KEY}-${WORKDIR_HASH}.json"
 if check_cache "$CACHE_FILE" "$FORCE"; then
   exit 0
 fi
