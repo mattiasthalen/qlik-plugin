@@ -2,33 +2,30 @@
 set -euo pipefail
 input=$(cat)
 
+# Path display — detect worktree vs normal repo
+toplevel="${GIT_TOPLEVEL:-$(git rev-parse --show-toplevel 2>/dev/null || echo "$PWD")}"
+project_dir="${CLAUDE_PROJECT_DIR:-$toplevel}"
+project_base=$(basename "$project_dir")
+current_base=$(basename "$toplevel")
+
+if [ "$toplevel" = "$project_dir" ]; then
+  path_display="$project_base"
+else
+  path_display="$project_base > $current_base"
+fi
+
 model_id=$(echo "$input" | jq -r '.model.id')
 
 # Derive display name from model ID
 # claude-opus-4-6 → Opus 4.6
 # claude-sonnet-4-6 → Sonnet 4.6
 # claude-haiku-4-5-20251001 → Haiku 4.5
-model_name=$(echo "$model_id" | sed -E 's/^claude-//; s/-[0-9]{8,}$//; s/-/ /g' | awk '{
-  in_version=0
-  for (i=1; i<=NF; i++) {
-    if ($i ~ /^[0-9]+$/) {
-      if (in_version == 0) {
-        printf " %s", $i
-        in_version=1
-      } else {
-        printf ".%s", $i
-      }
-    } else {
-      if (i == 1) {
-        printf "%s%s", toupper(substr($i,1,1)), substr($i,2)
-      } else {
-        printf " %s%s", toupper(substr($i,1,1)), substr($i,2)
-      }
-      in_version=0
-    }
-  }
-  print ""
-}')
+model_name=$(echo "$model_id" \
+  | sed -E 's/\[.*\]$//' \
+  | sed -E 's/^claude-//' \
+  | sed -E 's/-[0-9]{8,}$//' \
+  | sed -E 's/-([0-9]+)-([0-9]+)$/ \1.\2/' \
+  | sed -E 's/^(.)/\u\1/')
 
 pct=$(echo "$input" | jq -r '.context_window.used_percentage // 0' | cut -d. -f1)
 cost=$(echo "$input" | jq -r '.cost.total_cost_usd // 0')
@@ -52,4 +49,59 @@ else
   ctx_display="${ctx_text}"
 fi
 
-echo -e "${model_name} | ${ctx_display} | ${cost_fmt}"
+# Git branch — current branch or short SHA for detached HEAD
+# Use GIT_BRANCH if set in env (even empty), otherwise ask git
+if [ -n "${GIT_BRANCH+isset}" ]; then
+  branch="$GIT_BRANCH"
+else
+  branch="$(git branch --show-current 2>/dev/null || true)"
+fi
+if [ -z "$branch" ]; then
+  branch="${GIT_SHA:-$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")}"
+fi
+
+# Git status indicators — use ${VAR+isset} to distinguish empty (clean) from unset (run git)
+dirty=""
+if [ -n "${GIT_DIRTY+isset}" ]; then
+  [ -n "$GIT_DIRTY" ] && dirty="*"
+else
+  git diff --quiet HEAD 2>/dev/null || dirty="*"
+fi
+
+untracked=""
+if [ -n "${GIT_UNTRACKED+isset}" ]; then
+  [ -n "$GIT_UNTRACKED" ] && untracked="!"
+else
+  [ -n "$(git ls-files --others --exclude-standard 2>/dev/null | head -1)" ] && untracked="!"
+fi
+
+indicators="${dirty}${untracked}"
+
+# Ahead/behind remote — use ${VAR+isset} to distinguish empty (no ahead/behind) from unset (run git)
+ahead=""
+behind=""
+if [ -z "${GIT_NO_UPSTREAM:-}" ]; then
+  if [ -n "${GIT_AHEAD+isset}" ] || [ -n "${GIT_BEHIND+isset}" ]; then
+    ahead="${GIT_AHEAD:-}"
+    behind="${GIT_BEHIND:-}"
+  else
+    upstream_counts=$(git rev-list --left-right --count @{u}...HEAD 2>/dev/null || echo "")
+    if [ -n "$upstream_counts" ]; then
+      behind=$(echo "$upstream_counts" | cut -f1)
+      ahead=$(echo "$upstream_counts" | cut -f2)
+    fi
+  fi
+fi
+
+ahead_str=""
+behind_str=""
+[ -n "$ahead" ] && [ "$ahead" != "0" ] && ahead_str="↑${ahead}"
+[ -n "$behind" ] && [ "$behind" != "0" ] && behind_str="↓${behind}"
+
+# Assemble branch info: branch [*!] [↑N] [↓N]
+branch_info="${branch}"
+[ -n "$indicators" ] && branch_info="${branch_info} ${indicators}"
+[ -n "$ahead_str" ] && branch_info="${branch_info} ${ahead_str}"
+[ -n "$behind_str" ] && branch_info="${branch_info} ${behind_str}"
+
+printf '%b\n' "${path_display} (${branch_info}) | ${model_name} | ${ctx_display} | ${cost_fmt}"
