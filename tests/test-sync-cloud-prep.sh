@@ -18,8 +18,15 @@ setup_workdir() {
   mkdir -p "$workdir/.qlik-sync"
   cat > "$workdir/.qlik-sync/config.json" <<'JSON'
 {
-  "context": "test-ctx",
-  "server": "https://test-tenant.qlikcloud.com"
+  "version": "0.2.0",
+  "tenants": [
+    {
+      "context": "test-ctx",
+      "server": "https://test-tenant.qlikcloud.com",
+      "type": "cloud",
+      "lastSync": null
+    }
+  ]
 }
 JSON
   echo "$workdir"

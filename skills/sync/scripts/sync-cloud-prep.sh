@@ -13,16 +13,18 @@ SPACE_FILTER=""
 APP_FILTER=""
 ID_FILTER=""
 FORCE=false
+TENANT_FILTER=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
-    --space) SPACE_FILTER="$2"; shift 2 ;;
-    --app)   APP_FILTER="$2"; shift 2 ;;
-    --id)    ID_FILTER="$2"; shift 2 ;;
-    --force) FORCE=true; shift ;;
+    --space)  SPACE_FILTER="$2"; shift 2 ;;
+    --app)    APP_FILTER="$2"; shift 2 ;;
+    --id)     ID_FILTER="$2"; shift 2 ;;
+    --tenant) TENANT_FILTER="$2"; shift 2 ;;
+    --force)  FORCE=true; shift ;;
     *)
       echo "Unknown flag: $1" >&2
-      echo "Usage: sync-prep.sh [--space \"Name\"] [--app \"Pattern\"] [--id <GUID>] [--force]" >&2
+      echo "Usage: sync-prep.sh [--space \"Name\"] [--app \"Pattern\"] [--id <GUID>] [--tenant <context>] [--force]" >&2
       exit 1
       ;;
   esac
@@ -35,8 +37,15 @@ if [ ! -f "$CONFIG_FILE" ]; then
   exit 1
 fi
 
-CONTEXT="$(jq -r '.context // empty' "$CONFIG_FILE")"
-SERVER="$(jq -r '.server // empty' "$CONFIG_FILE")"
+TENANTS_JSON="$(read_tenant_config "$CONFIG_FILE" "$TENANT_FILTER")"
+TENANT_COUNT="$(echo "$TENANTS_JSON" | jq 'length')"
+if [ "$TENANT_COUNT" -eq 0 ]; then
+  echo "Error: no matching tenant found." >&2
+  exit 1
+fi
+TENANT_JSON="$(echo "$TENANTS_JSON" | jq '.[0]')"
+CONTEXT="$(echo "$TENANT_JSON" | jq -r '.context')"
+SERVER="$(echo "$TENANT_JSON" | jq -r '.server')"
 
 if [ -z "$CONTEXT" ] || [ -z "$SERVER" ]; then
   echo "Error: config.json missing context or server." >&2

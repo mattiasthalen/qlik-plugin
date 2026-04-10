@@ -26,8 +26,15 @@ WORKDIR="$TMPDIR_BASE/test-finalize"
 mkdir -p "$WORKDIR/.qlik-sync"
 cat > "$WORKDIR/.qlik-sync/config.json" <<'JSON'
 {
-  "context": "test-ctx",
-  "server": "https://test-tenant.qlikcloud.com"
+  "version": "0.2.0",
+  "tenants": [
+    {
+      "context": "test-ctx",
+      "server": "https://test-tenant.qlikcloud.com",
+      "type": "cloud",
+      "lastSync": null
+    }
+  ]
 }
 JSON
 
@@ -119,7 +126,7 @@ assert_json_field "app-002 present" "$INDEX" '.apps["app-002"].name' "HR Analyti
 # Check lastSync updated in config
 CONFIG="$WORKDIR/.qlik-sync/config.json"
 TESTS_RUN=$((TESTS_RUN + 1))
-LAST_SYNC="$(jq -r '.lastSync' "$CONFIG")"
+LAST_SYNC="$(jq -r '.tenants[0].lastSync' "$CONFIG")"
 if [ "$LAST_SYNC" != "null" ] && [ -n "$LAST_SYNC" ]; then
   TESTS_PASSED=$((TESTS_PASSED + 1))
   echo "  PASS: config.json lastSync updated"
@@ -139,7 +146,17 @@ echo "--- Test 3: Partial sync merges ---"
 WORKDIR2="$TMPDIR_BASE/test-finalize-merge"
 mkdir -p "$WORKDIR2/.qlik-sync"
 cat > "$WORKDIR2/.qlik-sync/config.json" <<'JSON'
-{"context": "test-ctx", "server": "https://test-tenant.qlikcloud.com"}
+{
+  "version": "0.2.0",
+  "tenants": [
+    {
+      "context": "test-ctx",
+      "server": "https://test-tenant.qlikcloud.com",
+      "type": "cloud",
+      "lastSync": null
+    }
+  ]
+}
 JSON
 
 # Pre-existing index with app-099

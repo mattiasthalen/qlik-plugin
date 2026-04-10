@@ -69,7 +69,14 @@ jq -n \
   > "$INDEX_FILE"
 
 # Update config.json
-jq --arg ts "$NOW" '.lastSync = $ts' "$CONFIG_FILE" > "${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
+VERSION="$(jq -r '.version // "0.1.0"' "$CONFIG_FILE")"
+if [ "$VERSION" = "0.2.0" ]; then
+  jq --arg ts "$NOW" --arg ctx "$CONTEXT" \
+    '(.tenants[] | select(.context == $ctx)).lastSync = $ts' \
+    "$CONFIG_FILE" > "${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
+else
+  jq --arg ts "$NOW" '.lastSync = $ts' "$CONFIG_FILE" > "${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
+fi
 
 # Summary from results
 SYNCED="$(jq '[.[] | select(.status == "synced")] | length' "$RESULTS_FILE")"
