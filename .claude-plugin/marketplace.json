@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "qlik",
+  "description": "Extract, inspect, and search Qlik Sense cloud apps. Syncs load scripts, master measures, dimensions, variables, objects, and connections to a local working copy.",
+  "owner": {
+    "name": "mattiasthalen",
+    "url": "https://github.com/mattiasthalen"
+  },
+  "plugins": [
+    {
+      "name": "qlik",
+      "description": "Extract, inspect, and search Qlik Sense cloud apps.",
+      "source": "./",
+      "category": "development"
+    }
+  ]
+}
