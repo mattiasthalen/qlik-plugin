@@ -22,6 +22,7 @@ allowed-tools:
   - Bash(date:*)
   - Read
   - Write
+  - Agent
 ---
 
 # Qlik Sync
