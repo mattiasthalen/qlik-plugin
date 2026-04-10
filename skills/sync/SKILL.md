@@ -12,7 +12,7 @@ allowed-tools:
   - "Bash(bash ${CLAUDE_SKILL_ROOT}/scripts/sync-onprem-prep.sh:*)"
   - "Bash(bash ${CLAUDE_SKILL_ROOT}/scripts/sync-onprem-app.sh:*)"
   - "Bash(bash ${CLAUDE_SKILL_ROOT}/scripts/sync-finalize.sh:*)"
-  - "Bash(cat /tmp/qlik-sync-prep.json:*)"
+  - "Bash(cat /tmp/qlik-sync-prep-*:*)"
   - "Bash(cat /tmp/qlik-sync-results.json:*)"
   - "Bash(echo:*)"
   - Bash(qlik app ls:*)
@@ -39,6 +39,15 @@ For detailed CLI command syntax, load the reference: `references/cli-commands.md
 
 Check that `.qlik-sync/config.json` exists. If not, tell the user:
 > Run `/qlik:setup` first to configure your Qlik Cloud connection.
+
+**Auto-resume after setup:** If setup was triggered as a prerequisite for sync (i.e., the user's original intent was to sync), resume the sync automatically after setup completes. Do not ask the user to re-invoke `/qlik:sync`.
+
+## Execution Notes
+
+- Prep scripts (`sync-cloud-prep.sh`, `sync-onprem-prep.sh`) make multiple API calls and may take 30-60 seconds. Always use `timeout: 120000` on these Bash calls.
+- App sync scripts (`sync-cloud-app.sh`, `sync-onprem-app.sh`) also involve network calls. Use `timeout: 120000`.
+- Finalize script is local-only and fast — default timeout is fine.
+- Prep scripts write output to `/tmp/qlik-sync-prep-<context>.json` with a 5-minute TTL cache. Re-runs within 5 minutes reuse cached API responses unless `--force` is passed.
 
 ## Step 1: Parse User Intent
 
@@ -77,8 +86,7 @@ For each tenant:
 ### Cloud Tenant
 
 ```bash
-bash ${CLAUDE_SKILL_ROOT}/scripts/sync-cloud-prep.sh [flags] > /tmp/qlik-sync-prep.json
-cat /tmp/qlik-sync-prep.json
+bash ${CLAUDE_SKILL_ROOT}/scripts/sync-cloud-prep.sh [flags]
 ```
 
 Report: Found **N** apps (**X** to sync, **Y** already synced)
@@ -94,8 +102,7 @@ If missing, stop and tell the user:
 
 Then:
 ```bash
-bash ${CLAUDE_SKILL_ROOT}/scripts/sync-onprem-prep.sh [flags] > /tmp/qlik-sync-prep.json
-cat /tmp/qlik-sync-prep.json
+bash ${CLAUDE_SKILL_ROOT}/scripts/sync-onprem-prep.sh [flags]
 ```
 
 Note: For on-prem, map `--space` to `--stream` when calling the prep script.
@@ -218,3 +225,10 @@ If the script exits with an error, help diagnose:
             └── <app-name> (<appId>)/
                 └── ...
 ```
+
+## Troubleshooting
+
+- **Empty output from prep script**: The command may have been backgrounded by the harness. Re-run with explicit `timeout: 120000`. If the cache file at `/tmp/qlik-sync-prep-<context>-<hash>.json` exists and is recent, read it directly with `cat` instead of re-running the script.
+- **Auth errors (401)**: Token may have expired. Suggest `qlik context login` to re-authenticate.
+- **Network timeout**: Check VPN/proxy settings and verify the tenant URL is correct.
+- **Partial sync failures**: Use `--force` with a specific `--id` to retry individual failed apps.

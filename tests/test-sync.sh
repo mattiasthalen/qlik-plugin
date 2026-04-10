@@ -49,4 +49,13 @@ assert_contains "mentions agent failure handling" "$SKILL_CONTENT" "agent failed
 assert_contains "mentions cloud app script in agent prompt" "$SKILL_CONTENT" "sync-cloud-app.sh"
 assert_contains "mentions onprem app script in agent prompt" "$SKILL_CONTENT" "sync-onprem-app.sh"
 
+echo ""
+echo "=== skill orchestration tests ==="
+assert_contains "mentions auto-resume after setup" "$SKILL_CONTENT" "resume the sync automatically"
+assert_contains "mentions timeout 120000" "$SKILL_CONTENT" "timeout: 120000"
+assert_contains "has execution notes section" "$SKILL_CONTENT" "Execution Notes"
+assert_contains "has troubleshooting section" "$SKILL_CONTENT" "Troubleshooting"
+assert_contains "mentions backgrounded commands" "$SKILL_CONTENT" "backgrounded"
+assert_contains "mentions cache file path" "$SKILL_CONTENT" "qlik-sync-prep-"
+
 test_summary
