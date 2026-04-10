@@ -100,21 +100,67 @@ cat /tmp/qlik-sync-prep.json
 
 Note: For on-prem, map `--space` to `--stream` when calling the prep script.
 
-## Step 4: Sync Loop with Progress
+## Step 4: Parallel Sync
 
-Loop through each app in the prep JSON. Track timing for ETA.
+### 4a: Report skips
 
-For each non-skipped app, call the appropriate script:
-- **Cloud:** `bash ${CLAUDE_SKILL_ROOT}/scripts/sync-cloud-app.sh "<resourceId>" "<targetPath>"`
-- **On-prem:** `bash ${CLAUDE_SKILL_ROOT}/scripts/sync-onprem-app.sh "<resourceId>" "<targetPath>"`
+For each app in the prep JSON where `skip` is `true`:
+- Report `[N/Total] SKIP: <spaceType>/<spaceName> / <appName> (<skipReason>)`
+- Append `{"resourceId": "<id>", "status": "skipped"}` to the results array
 
-progress reporting and ETA logic:
-- If `skip` is true: report `[N/Total] SKIP: <spaceType>/<spaceName> / <appName>`
-- On success: report `[N/Total] Synced: <spaceType>/<spaceName> / <appName>`
-- On failure: report `[N/Total] ERROR: <spaceType>/<spaceName> / <appName>`
-- After 3+ non-skipped apps, include ETA
+### 4b: Split into batches
 
-After the loop, write results to `/tmp/qlik-sync-results.json`.
+Filter apps where `skip` is `false`. Calculate agent count: `min(nonSkipApps, 5)`.
+
+Distribution: first N-1 batches get `floor(nonSkipApps / agents)` apps, last batch gets the rest.
+
+If 0 non-skip apps remain, skip to Step 5 (finalize).
+
+### 4c: Dispatch agents
+
+Resolve `${CLAUDE_SKILL_ROOT}` to an absolute path. Determine the app script based on tenant type:
+- **Cloud:** `{resolvedSkillRoot}/scripts/sync-cloud-app.sh`
+- **On-prem:** `{resolvedSkillRoot}/scripts/sync-onprem-app.sh`
+
+Report to user:
+> Dispatching **N** parallel agents...
+
+Spawn all agents simultaneously using the Agent tool. Each agent receives this prompt (fill in the values):
+
+> Sync batch {batchNumber} of {totalBatches} for parallel sync.
+>
+> For each app in the list below, run:
+>   bash {syncAppScript} "{resourceId}" "{targetPath}"
+>
+> After processing all apps, return a JSON array of results:
+> [
+>   {"resourceId": "app-001", "status": "synced"},
+>   {"resourceId": "app-002", "status": "error", "error": "unbuild failed: ..."}
+> ]
+>
+> Rules:
+> - Process apps sequentially within your batch
+> - On script failure (non-zero exit), mark status "error" with stderr as error message
+> - Continue to next app on failure — do not abort batch
+> - Return the complete results array when done
+>
+> Apps to sync:
+> {JSON array of app objects for this batch}
+
+Where `{syncAppScript}` is the resolved absolute path to `sync-cloud-app.sh` or `sync-onprem-app.sh`.
+
+### 4d: Collect results progressively
+
+As each agent completes, parse its returned JSON results array and report:
+> Batch **N**/**M** complete: **X** synced, **Y** errors (ETA: ~Z min remaining)
+
+If an agent fails entirely (crash/timeout), mark all apps in that batch as errors:
+`{"resourceId": "<id>", "status": "error", "error": "agent failed"}`
+Report: `Batch N/M FAILED: agent error`
+
+### 4e: Concatenate results
+
+After all agents complete, concatenate all agent result arrays with the skip results into a single results array. Write to `/tmp/qlik-sync-results.json`.
 
 ## Step 5: Finalize
 
