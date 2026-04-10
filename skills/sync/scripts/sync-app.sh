@@ -16,4 +16,4 @@ TARGET_PATH="$2"
 FULL_PATH=".qlik-sync/$TARGET_PATH"
 
 mkdir -p "$FULL_PATH"
-qlik app unbuild --app "$RESOURCE_ID" --dir "$FULL_PATH" < /dev/null >/dev/null 2>&1
+qlik app unbuild --app "$RESOURCE_ID" --dir "$FULL_PATH" < /dev/null >/dev/null

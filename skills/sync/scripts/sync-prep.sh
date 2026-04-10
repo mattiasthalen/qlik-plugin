@@ -128,7 +128,7 @@ else
 fi
 
 if [ -n "$APP_FILTER" ]; then
-  jq "[.[] | select(.name | test(\"$APP_FILTER\"))]" "$APPS_FILE" > "${APPS_FILE}.tmp" && mv "${APPS_FILE}.tmp" "$APPS_FILE"
+  jq --arg pat "$APP_FILTER" '[.[] | select(.name | test($pat))]' "$APPS_FILE" > "${APPS_FILE}.tmp" && mv "${APPS_FILE}.tmp" "$APPS_FILE"
 fi
 
 APP_COUNT="$(jq 'length' "$APPS_FILE")"
