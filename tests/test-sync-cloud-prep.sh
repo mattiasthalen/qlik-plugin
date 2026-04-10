@@ -170,4 +170,45 @@ echo "$OUTPUT6" > "$PREP_JSON6"
 SKIP_COUNT2="$(jq '[.apps[] | select(.skip == true)] | length' "$PREP_JSON6")"
 assert_eq "force: 0 apps marked skip" "0" "$SKIP_COUNT2"
 
+# Test 9: Cache hit — fresh cache file skips API calls
+echo ""
+echo "--- Test 9: Cache hit ---"
+WORKDIR7="$(setup_workdir)"
+WORKDIR7_HASH="$(echo "$WORKDIR7" | md5sum | cut -c1-8)"
+rm -f /tmp/qlik-sync-prep-test-ctx-${WORKDIR7_HASH}-*.json
+# Run once to populate cache
+FIRST_OUTPUT="$(run_prep "$WORKDIR7")"
+# Cache file should exist (pattern: test-ctx-<workdir_hash>-<sync_state_hash>)
+CACHE_FILE="$(ls /tmp/qlik-sync-prep-test-ctx-${WORKDIR7_HASH}-*.json 2>/dev/null | head -1)"
+TESTS_RUN=$((TESTS_RUN + 1))
+if [ -f "$CACHE_FILE" ]; then
+  # Run again — should return cached output
+  SECOND_OUTPUT="$(run_prep "$WORKDIR7")"
+  if [ "$FIRST_OUTPUT" = "$SECOND_OUTPUT" ]; then
+    TESTS_PASSED=$((TESTS_PASSED + 1))
+    echo "  PASS: second run returns cached output"
+  else
+    TESTS_FAILED=$((TESTS_FAILED + 1))
+    echo "  FAIL: cached output differs from first run"
+  fi
+else
+  TESTS_FAILED=$((TESTS_FAILED + 1))
+  echo "  FAIL: cache file not created at $CACHE_FILE"
+fi
+
+# Test 10: Cache bypass with --force
+echo ""
+echo "--- Test 10: Cache bypass with --force ---"
+# Cache file should still exist from Test 9
+TESTS_RUN=$((TESTS_RUN + 1))
+FORCE_OUTPUT="$(run_prep "$WORKDIR7" --force)"
+FORCE_APPS="$(echo "$FORCE_OUTPUT" | jq '.totalApps')"
+if [ "$FORCE_APPS" = "6" ]; then
+  TESTS_PASSED=$((TESTS_PASSED + 1))
+  echo "  PASS: --force bypasses cache and fetches fresh data"
+else
+  TESTS_FAILED=$((TESTS_FAILED + 1))
+  echo "  FAIL: expected 6 apps with --force, got $FORCE_APPS"
+fi
+
 test_summary
