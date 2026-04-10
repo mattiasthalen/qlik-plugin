@@ -1,7 +1,7 @@
 {
   "name": "qlik",
   "description": "Extract, inspect, and search Qlik Sense cloud apps. Syncs load scripts, master measures, dimensions, variables, objects, and connections to a local working copy.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": {
     "name": "mattiasthalen"
   },
