@@ -22,9 +22,16 @@ CONTEXT="$(jq -r '.context' "$PREP_FILE")"
 SERVER="$(jq -r '.server' "$PREP_FILE")"
 TOTAL_APPS="$(jq -r '.totalApps' "$PREP_FILE")"
 
+# Build tenant directory label for index entries
+if [ -n "$TENANT_ID" ]; then
+  TENANT_DIR="$TENANT ($TENANT_ID)"
+else
+  TENANT_DIR="$TENANT"
+fi
+
 # Build apps object from prep data
 # Each app entry keyed by resourceId, with trailing slash on path
-APPS_OBJ="$(jq '
+APPS_OBJ="$(jq --arg tenantDir "$TENANT_DIR" '
   [.apps[] | {
     key: .resourceId,
     value: {
@@ -39,7 +46,8 @@ APPS_OBJ="$(jq '
       tags: .tags,
       published: .published,
       lastReloadTime: .lastReloadTime,
-      path: (.targetPath + "/")
+      path: (.targetPath + "/"),
+      tenant: $tenantDir
     }
   }] | from_entries
 ' "$PREP_FILE")"
