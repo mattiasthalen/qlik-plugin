@@ -69,7 +69,7 @@ bash sync-prep.sh [--space "Name"] [--app "Pattern"] [--id "uuid"] [--force]
       "resourceId": "app-002",
       "name": "Old Report",
       "spaceName": "Finance Prod",
-      "targetPath": "...",
+      "targetPath": "my-tenant (abc-123)/managed/Finance Prod (space-001)/analytics/Old Report (app-002)",
       "skip": true,
       "skipReason": "already synced (use --force to re-sync)"
     }
@@ -151,8 +151,8 @@ allowed-tools:
   - "Bash(bash ${CLAUDE_SKILL_ROOT}/scripts/sync-prep.sh:*)"
   - "Bash(bash ${CLAUDE_SKILL_ROOT}/scripts/sync-app.sh:*)"
   - "Bash(bash ${CLAUDE_SKILL_ROOT}/scripts/sync-finalize.sh:*)"
-  - "Bash(cat /tmp/qlik-sync-prep-*.json:*)"
-  - "Bash(cat /tmp/qlik-sync-results-*.json:*)"
+  - "Bash(cat /tmp/qlik-sync-prep.json:*)"
+  - "Bash(cat /tmp/qlik-sync-results.json:*)"
   - Bash(qlik app ls:*)
   - Bash(date:*)
   - Read
@@ -165,7 +165,7 @@ allowed-tools:
 2. **Warn on scale** — same as current (>50 apps prompt)
 3. **Run prep:**
    ```bash
-   bash ${CLAUDE_SKILL_ROOT}/scripts/sync-prep.sh [flags] > /tmp/qlik-sync-prep-$$.json
+   bash ${CLAUDE_SKILL_ROOT}/scripts/sync-prep.sh [flags] > /tmp/qlik-sync-prep.json
    ```
 4. **Report plan:** "Found 47 apps (12 already synced, 35 to sync)"
 5. **Loop through apps** from prep JSON:
@@ -177,10 +177,10 @@ allowed-tools:
      - On failure → report `[N/Total] ERROR: Space / App` → continue
      - After 3+ synced apps, include ETA: `(~Xm remaining)`
      - Append result to results JSON
-6. **Write results** to `/tmp/qlik-sync-results-$$.json`
+6. **Write results** to `/tmp/qlik-sync-results.json`
 7. **Run finalize:**
    ```bash
-   bash ${CLAUDE_SKILL_ROOT}/scripts/sync-finalize.sh /tmp/qlik-sync-prep-$$.json /tmp/qlik-sync-results-$$.json
+   bash ${CLAUDE_SKILL_ROOT}/scripts/sync-finalize.sh /tmp/qlik-sync-prep.json /tmp/qlik-sync-results.json
    ```
 8. **Report summary** from finalize stdout
 
