@@ -4,6 +4,10 @@
 # Outputs JSON to stdout with app list and resolved metadata
 set -euo pipefail
 
+# --- Source shared helpers ---
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/sync-lib.sh"
+
 # --- Parse flags ---
 SPACE_FILTER=""
 APP_FILTER=""
@@ -98,14 +102,6 @@ resolve_username() {
   fi
   printf '%s\t%s\n' "$user_id" "$uname" >> "$USER_CACHE"
   echo "$uname"
-}
-
-normalize_app_type() {
-  echo "$1" | tr '[:upper:]' '[:lower:]' | tr '_' '-'
-}
-
-sanitize() {
-  echo "$1" | tr '/\\:*?"<>|' '_________'
 }
 
 # --- Resolve space ID for space filter ---
