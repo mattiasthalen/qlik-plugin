@@ -1,0 +1,8 @@
+// Mock load script extracted by qlik-parser
+SalesData:
+LOAD
+    OrderId,
+    CustomerName,
+    Amount,
+    OrderDate
+FROM [lib://DataFiles/sales.qvd] (qvd);

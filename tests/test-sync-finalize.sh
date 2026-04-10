@@ -26,8 +26,15 @@ WORKDIR="$TMPDIR_BASE/test-finalize"
 mkdir -p "$WORKDIR/.qlik-sync"
 cat > "$WORKDIR/.qlik-sync/config.json" <<'JSON'
 {
-  "context": "test-ctx",
-  "server": "https://test-tenant.qlikcloud.com"
+  "version": "0.2.0",
+  "tenants": [
+    {
+      "context": "test-ctx",
+      "server": "https://test-tenant.qlikcloud.com",
+      "type": "cloud",
+      "lastSync": null
+    }
+  ]
 }
 JSON
 
@@ -119,7 +126,7 @@ assert_json_field "app-002 present" "$INDEX" '.apps["app-002"].name' "HR Analyti
 # Check lastSync updated in config
 CONFIG="$WORKDIR/.qlik-sync/config.json"
 TESTS_RUN=$((TESTS_RUN + 1))
-LAST_SYNC="$(jq -r '.lastSync' "$CONFIG")"
+LAST_SYNC="$(jq -r '.tenants[0].lastSync' "$CONFIG")"
 if [ "$LAST_SYNC" != "null" ] && [ -n "$LAST_SYNC" ]; then
   TESTS_PASSED=$((TESTS_PASSED + 1))
   echo "  PASS: config.json lastSync updated"
@@ -139,7 +146,17 @@ echo "--- Test 3: Partial sync merges ---"
 WORKDIR2="$TMPDIR_BASE/test-finalize-merge"
 mkdir -p "$WORKDIR2/.qlik-sync"
 cat > "$WORKDIR2/.qlik-sync/config.json" <<'JSON'
-{"context": "test-ctx", "server": "https://test-tenant.qlikcloud.com"}
+{
+  "version": "0.2.0",
+  "tenants": [
+    {
+      "context": "test-ctx",
+      "server": "https://test-tenant.qlikcloud.com",
+      "type": "cloud",
+      "lastSync": null
+    }
+  ]
+}
 JSON
 
 # Pre-existing index with app-099
@@ -211,5 +228,57 @@ INDEX2="$WORKDIR2/.qlik-sync/index.json"
 assert_json_field "merged appCount is 2" "$INDEX2" ".appCount" "2"
 assert_json_field "old app-099 preserved" "$INDEX2" '.apps["app-099"].name' "Old App"
 assert_json_field "new app-001 added" "$INDEX2" '.apps["app-001"].name' "Sales Dashboard"
+
+# Test 4: Index includes tenant metadata
+echo ""
+echo "--- Test 4: Tenant metadata in index ---"
+WORKDIR3="$TMPDIR_BASE/test-finalize-tenant"
+mkdir -p "$WORKDIR3/.qlik-sync"
+cat > "$WORKDIR3/.qlik-sync/config.json" <<'JSON'
+{
+  "version": "0.2.0",
+  "tenants": [
+    {"context": "test-ctx", "server": "https://test-tenant.qlikcloud.com", "type": "cloud", "lastSync": null}
+  ]
+}
+JSON
+
+PREP_TENANT="$TMPDIR_BASE/prep-tenant.json"
+cat > "$PREP_TENANT" <<'JSON'
+{
+  "tenant": "test-tenant",
+  "tenantId": "test-tenant-id",
+  "context": "test-ctx",
+  "server": "https://test-tenant.qlikcloud.com",
+  "totalApps": 1,
+  "apps": [
+    {
+      "resourceId": "app-001",
+      "name": "Sales Dashboard",
+      "spaceId": "space-001",
+      "spaceName": "Finance Prod",
+      "spaceType": "managed",
+      "appType": "analytics",
+      "ownerId": "user-001",
+      "ownerName": "testuser",
+      "description": "",
+      "tags": [],
+      "published": true,
+      "lastReloadTime": "2026-04-08T02:00:00Z",
+      "targetPath": "test-tenant (test-tenant-id)/managed/Finance Prod (space-001)/analytics/Sales Dashboard (app-001)",
+      "skip": false,
+      "skipReason": ""
+    }
+  ]
+}
+JSON
+
+RESULTS_TENANT="$TMPDIR_BASE/results-tenant.json"
+echo '[{"resourceId": "app-001", "status": "synced"}]' > "$RESULTS_TENANT"
+
+OUTPUT3="$(cd "$WORKDIR3" && bash "$FINALIZE_SCRIPT" "$PREP_TENANT" "$RESULTS_TENANT")"
+
+INDEX3="$WORKDIR3/.qlik-sync/index.json"
+assert_json_field "app-001 has tenant field" "$INDEX3" '.apps["app-001"].tenant' "test-tenant (test-tenant-id)"
 
 test_summary

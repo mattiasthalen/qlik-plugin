@@ -22,9 +22,16 @@ CONTEXT="$(jq -r '.context' "$PREP_FILE")"
 SERVER="$(jq -r '.server' "$PREP_FILE")"
 TOTAL_APPS="$(jq -r '.totalApps' "$PREP_FILE")"
 
+# Build tenant directory label for index entries
+if [ -n "$TENANT_ID" ]; then
+  TENANT_DIR="$TENANT ($TENANT_ID)"
+else
+  TENANT_DIR="$TENANT"
+fi
+
 # Build apps object from prep data
 # Each app entry keyed by resourceId, with trailing slash on path
-APPS_OBJ="$(jq '
+APPS_OBJ="$(jq --arg tenantDir "$TENANT_DIR" '
   [.apps[] | {
     key: .resourceId,
     value: {
@@ -39,7 +46,8 @@ APPS_OBJ="$(jq '
       tags: .tags,
       published: .published,
       lastReloadTime: .lastReloadTime,
-      path: (.targetPath + "/")
+      path: (.targetPath + "/"),
+      tenant: $tenantDir
     }
   }] | from_entries
 ' "$PREP_FILE")"
@@ -69,7 +77,14 @@ jq -n \
   > "$INDEX_FILE"
 
 # Update config.json
-jq --arg ts "$NOW" '.lastSync = $ts' "$CONFIG_FILE" > "${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
+VERSION="$(jq -r '.version // "0.1.0"' "$CONFIG_FILE")"
+if [ "$VERSION" = "0.2.0" ]; then
+  jq --arg ts "$NOW" --arg ctx "$CONTEXT" \
+    '(.tenants[] | select(.context == $ctx)).lastSync = $ts' \
+    "$CONFIG_FILE" > "${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
+else
+  jq --arg ts "$NOW" '.lastSync = $ts' "$CONFIG_FILE" > "${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
+fi
 
 # Summary from results
 SYNCED="$(jq '[.[] | select(.status == "synced")] | length' "$RESULTS_FILE")"

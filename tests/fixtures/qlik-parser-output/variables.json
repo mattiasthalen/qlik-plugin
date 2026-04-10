@@ -1,0 +1,9 @@
+[
+  {
+    "id": "variable-001",
+    "name": "vReportMonth",
+    "description": "Current reporting month",
+    "value": "$(=Max(OrderDate))",
+    "comment": "Set to last order date by default"
+  }
+]

@@ -1,0 +1,36 @@
+#!/bin/bash
+# Mock qlik-parser binary for testing
+# Returns canned responses from fixture files
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+FIXTURES_DIR="$SCRIPT_DIR/../fixtures/qlik-parser-output"
+
+case "$1" in
+  version)
+    echo "qlik-parser version 1.0.0-mock"
+    ;;
+  extract)
+    # Parse flags: --source <qvf> --out <dir> --script --measures --dimensions --variables
+    OUT_DIR=""
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --out) OUT_DIR="$2"; shift 2 ;;
+        --source|--script|--measures|--dimensions|--variables) shift ;;
+        *) shift ;;
+      esac
+    done
+    if [ -z "$OUT_DIR" ]; then
+      echo "Error: --out required" >&2
+      exit 1
+    fi
+    mkdir -p "$OUT_DIR"
+    cp "$FIXTURES_DIR/script.qvs" "$OUT_DIR/script.qvs"
+    cp "$FIXTURES_DIR/measures.json" "$OUT_DIR/measures.json"
+    cp "$FIXTURES_DIR/dimensions.json" "$OUT_DIR/dimensions.json"
+    cp "$FIXTURES_DIR/variables.json" "$OUT_DIR/variables.json"
+    ;;
+  *)
+    echo "Unknown command: $1" >&2
+    exit 1
+    ;;
+esac

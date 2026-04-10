@@ -50,6 +50,24 @@ If output shows an existing context, ask the user:
 
 If they want to reuse it, skip to Step 4.
 
+## Step 2.5: Detect Tenant Type
+
+Based on the server URL:
+- URL contains `.qlikcloud.com` → Cloud tenant
+- Otherwise → On-prem Qlik Sense Enterprise
+
+Confirm with the user:
+> Detected this as a **[Cloud/On-prem]** Qlik tenant. Is that correct?
+
+For **on-prem** tenants:
+- Context creation uses `--server-type Windows --insecure`:
+  ```bash
+  qlik context create <name> --server https://server/jwt --api-key <JWT> --insecure --server-type Windows
+  ```
+- Check for qlik-parser: `which qlik-parser`
+  - If missing: "On-prem sync requires qlik-parser. Download from https://github.com/mattiasthalen/qlik-parser/releases"
+  - Don't block setup — only needed at sync time
+
 ## Step 3: Create Context and Authenticate
 
 Ask the user for their Qlik Cloud tenant URL (e.g., `https://mytenant.us.qlikcloud.com`) and a context name (e.g., their tenant subdomain like `my-tenant`).
@@ -82,9 +100,9 @@ qlik context login
 
 ## Step 4: Test Connectivity
 
-```bash
-qlik app ls --limit 1 --json
-```
+### Connectivity test
+- **Cloud:** `qlik app ls --limit 1 --json`
+- **On-prem:** `qlik qrs app ls --json` with `--server-type Windows`
 
 Verify the output is valid JSON containing at least one app. Report to the user:
 > Connected successfully! Found apps on your tenant.
@@ -101,18 +119,28 @@ Verify the output is valid JSON containing at least one app. Report to the user:
 mkdir -p .qlik-sync
 ```
 
-Write `.qlik-sync/config.json`:
+If `.qlik-sync/config.json` exists:
+- Read existing config
+- If v0.1.0 format (no `version` field or `version: "0.1.0"`), migrate to v0.2.0: wrap existing tenant into `tenants` array, auto-detect type from server URL
+- If v0.2.0 format, append new tenant to `tenants` array
+
+If no existing config, create new:
 
 ```json
 {
-  "context": "<context-name-from-qlik-context-ls>",
-  "server": "<tenant-url>",
-  "lastSync": null,
-  "version": "0.1.0"
+  "version": "0.2.0",
+  "tenants": [
+    {
+      "context": "<context-name>",
+      "server": "<tenant-url>",
+      "type": "<cloud|on-prem>",
+      "lastSync": null
+    }
+  ]
 }
 ```
 
-Use the context name and server URL from the `qlik context ls` output.
+Use the context name and server URL from the `qlik context ls` output. Set type based on the detection from Step 2.5.
 
 ## Step 6: Update .gitignore
 

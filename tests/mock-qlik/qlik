@@ -130,6 +130,55 @@ case "$1" in
         ;;
     esac
     ;;
+  qrs)
+    case "$2" in
+      app)
+        case "$3" in
+          full|ls)
+            cat "$FIXTURES_DIR/qrs-app-full-response.json"
+            ;;
+          export)
+            # qrs app export create <appId> --skipdata --json
+            APP_ID="$4"
+            jq --arg appId "$APP_ID" '.appId = $appId' "$FIXTURES_DIR/qrs-export-response.json"
+            ;;
+          *)
+            echo "Unknown qrs app subcommand: $3" >&2
+            exit 1
+            ;;
+        esac
+        ;;
+      stream)
+        case "$3" in
+          ls)
+            cat "$FIXTURES_DIR/qrs-stream-ls-response.json"
+            ;;
+          *)
+            echo "Unknown qrs stream subcommand: $3" >&2
+            exit 1
+            ;;
+        esac
+        ;;
+      download)
+        # qrs download app get <file> --appId <id> --exportticketid <ticket> --output-file <path>
+        OUTPUT_FILE=""
+        while [ $# -gt 0 ]; do
+          case "$1" in
+            --output-file) OUTPUT_FILE="$2"; shift 2 ;;
+            *) shift ;;
+          esac
+        done
+        if [ -n "$OUTPUT_FILE" ]; then
+          mkdir -p "$(dirname "$OUTPUT_FILE")"
+          touch "$OUTPUT_FILE"
+        fi
+        ;;
+      *)
+        echo "Unknown qrs subcommand: $2" >&2
+        exit 1
+        ;;
+    esac
+    ;;
   *)
     echo "Unknown command: $1" >&2
     exit 1

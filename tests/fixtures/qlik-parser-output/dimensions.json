@@ -1,0 +1,9 @@
+[
+  {
+    "id": "dimension-001",
+    "name": "Customer",
+    "description": "Customer name dimension",
+    "expression": "CustomerName",
+    "label": "Customer"
+  }
+]

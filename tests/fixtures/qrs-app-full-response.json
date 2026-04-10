@@ -1,0 +1,56 @@
+[
+  {
+    "id": "qrs-app-001",
+    "name": "Finance Report",
+    "description": "Monthly finance reporting app",
+    "published": true,
+    "lastReloadTime": "2026-04-08T02:00:00Z",
+    "stream": {
+      "id": "stream-001",
+      "name": "Finance Stream"
+    },
+    "owner": {
+      "id": "user-qrs-001",
+      "userId": "jdoe",
+      "name": "Jane Doe",
+      "userDirectory": "CORP"
+    },
+    "tags": [],
+    "customProperties": []
+  },
+  {
+    "id": "qrs-app-002",
+    "name": "HR Dashboard",
+    "description": "Human resources analytics dashboard",
+    "published": true,
+    "lastReloadTime": "2026-04-07T12:00:00Z",
+    "stream": {
+      "id": "stream-002",
+      "name": "HR Stream"
+    },
+    "owner": {
+      "id": "user-qrs-002",
+      "userId": "hruser",
+      "name": "HR Admin",
+      "userDirectory": "CORP"
+    },
+    "tags": [],
+    "customProperties": []
+  },
+  {
+    "id": "qrs-app-003",
+    "name": "Personal Scratch",
+    "description": "Personal work-in-progress app",
+    "published": false,
+    "lastReloadTime": "2026-04-09T09:00:00Z",
+    "stream": null,
+    "owner": {
+      "id": "user-qrs-001",
+      "userId": "jdoe",
+      "name": "Jane Doe",
+      "userDirectory": "CORP"
+    },
+    "tags": [],
+    "customProperties": []
+  }
+]

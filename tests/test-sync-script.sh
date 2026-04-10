@@ -18,8 +18,15 @@ setup_workdir() {
   mkdir -p "$workdir/.qlik-sync"
   cat > "$workdir/.qlik-sync/config.json" <<'JSON'
 {
-  "context": "test-ctx",
-  "server": "https://test-tenant.qlikcloud.com"
+  "version": "0.2.0",
+  "tenants": [
+    {
+      "context": "test-ctx",
+      "server": "https://test-tenant.qlikcloud.com",
+      "type": "cloud",
+      "lastSync": null
+    }
+  ]
 }
 JSON
   echo "$workdir"
@@ -135,7 +142,7 @@ assert_json_field "filtered appCount is 3" "$WORKDIR2/.qlik-sync/index.json" ".a
 # Test 7: lastSync
 echo ""
 echo "--- Test 7: lastSync updated ---"
-LASTSYNC="$(jq -r '.lastSync' "$WORKDIR/.qlik-sync/config.json")"
+LASTSYNC="$(jq -r '.tenants[0].lastSync' "$WORKDIR/.qlik-sync/config.json")"
 TESTS_RUN=$((TESTS_RUN + 1))
 if [ "$LASTSYNC" != "null" ] && [ -n "$LASTSYNC" ]; then
   TESTS_PASSED=$((TESTS_PASSED + 1))

@@ -85,3 +85,60 @@ qlik app unbuild --app <app-id> --dir <output-directory>
 - **No bookmarks:** Bookmarks are not supported by unbuild/build.
 - **WebSocket required:** Each unbuild opens a WebSocket to the Qlik Engine. Large apps may take longer. If the connection times out, retry once.
 - **Special characters:** Variables containing special characters or super/subscripts may not round-trip correctly through unbuild/build.
+
+## On-Prem: qlik qrs app full
+
+List all apps with full metadata from QRS API.
+
+```bash
+qlik qrs app full --json
+```
+
+**Key output fields per app:**
+- `id` — app GUID
+- `name` — app name
+- `stream` — stream object (null if unpublished), with `id` and `name`
+- `owner` — owner object with `id`, `userId`, `name`, `userDirectory`
+- `description`
+- `published`
+- `lastReloadTime`
+
+## On-Prem: qlik qrs stream ls
+
+```bash
+qlik qrs stream ls --json
+```
+
+**Key output fields:**
+- `id` — stream GUID
+- `name` — stream display name
+
+## On-Prem: App Export (2-step)
+
+Step 1 — create export ticket:
+```bash
+qlik qrs app export create <appId> --skipdata --json
+```
+
+Returns JSON with `exportTicketId` field.
+
+Step 2 — download QVF:
+```bash
+qlik qrs download app get <filename>.qvf --appId <appId> --exportticketid <ticket> --output-file <path>
+```
+
+## qlik-parser extract
+
+Extract artifacts from a QVF file (on-prem only).
+
+```bash
+qlik-parser extract --source <path-to-qvf> --out <output-dir> --script --measures --dimensions --variables
+```
+
+**Output files:**
+- `script.qvs` — reload script
+- `measures.json` — master measures
+- `dimensions.json` — master dimensions
+- `variables.json` — variables
+
+**Note:** qlik-parser produces a subset of what `qlik app unbuild` provides — no `config.yml`, `connections.yml`, or `objects/` directory.
