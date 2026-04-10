@@ -18,6 +18,9 @@ sync-template:
 test:
 	@bash tests/test-setup.sh
 	@bash tests/test-sync.sh
+	@bash tests/test-sync-prep.sh
+	@bash tests/test-sync-app.sh
+	@bash tests/test-sync-finalize.sh
 	@bash tests/test-sync-script.sh
 	@bash tests/test-inspect.sh
 	@bash tests/test-project.sh
