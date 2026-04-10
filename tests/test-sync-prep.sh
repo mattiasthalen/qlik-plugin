@@ -102,4 +102,65 @@ assert_json_field "app-006 spaceType is personal" "$PERSONAL_JSON" ".spaceType" 
 assert_json_field "app-006 appType is data-preparation" "$PERSONAL_JSON" ".appType" "data-preparation"
 assert_json_field "app-006 ownerName" "$PERSONAL_JSON" ".ownerName" "testuser"
 
+# Test 4: Space filter
+echo ""
+echo "--- Test 4: Space filter ---"
+WORKDIR2="$(setup_workdir)"
+OUTPUT2="$(run_prep "$WORKDIR2" --space "Finance Prod")"
+PREP_JSON2="$TMPDIR_BASE/prep-space.json"
+echo "$OUTPUT2" > "$PREP_JSON2"
+assert_json_field "space filter totalApps is 3" "$PREP_JSON2" ".totalApps" "3"
+
+# All apps should be in Finance Prod
+TESTS_RUN=$((TESTS_RUN + 1))
+ALL_FINANCE="$(jq '[.apps[] | select(.spaceName == "Finance Prod")] | length' "$PREP_JSON2")"
+if [ "$ALL_FINANCE" = "3" ]; then
+  TESTS_PASSED=$((TESTS_PASSED + 1))
+  echo "  PASS: all 3 apps are in Finance Prod"
+else
+  TESTS_FAILED=$((TESTS_FAILED + 1))
+  echo "  FAIL: expected 3 Finance Prod apps, got $ALL_FINANCE"
+fi
+
+# Test 5: App name filter
+echo ""
+echo "--- Test 5: App name filter ---"
+WORKDIR3="$(setup_workdir)"
+OUTPUT3="$(run_prep "$WORKDIR3" --app "Sales")"
+PREP_JSON3="$TMPDIR_BASE/prep-app.json"
+echo "$OUTPUT3" > "$PREP_JSON3"
+assert_json_field "app filter totalApps is 2" "$PREP_JSON3" ".totalApps" "2"
+
+# Test 6: ID filter
+echo ""
+echo "--- Test 6: ID filter ---"
+WORKDIR4="$(setup_workdir)"
+OUTPUT4="$(run_prep "$WORKDIR4" --id "app-003")"
+PREP_JSON4="$TMPDIR_BASE/prep-id.json"
+echo "$OUTPUT4" > "$PREP_JSON4"
+assert_json_field "id filter totalApps is 1" "$PREP_JSON4" ".totalApps" "1"
+assert_json_field "id filter correct app" "$PREP_JSON4" '.apps[0].resourceId' "app-003"
+
+# Test 7: Resume skip
+echo ""
+echo "--- Test 7: Resume marks skip ---"
+WORKDIR5="$(setup_workdir)"
+# First run to create files
+(cd "$WORKDIR5" && PATH="$MOCK_DIR:$PATH" bash "$REPO_ROOT/skills/sync/scripts/sync-tenant.sh" 2>/dev/null) >/dev/null
+# Now prep should mark all as skip
+OUTPUT5="$(run_prep "$WORKDIR5")"
+PREP_JSON5="$TMPDIR_BASE/prep-skip.json"
+echo "$OUTPUT5" > "$PREP_JSON5"
+SKIP_COUNT="$(jq '[.apps[] | select(.skip == true)] | length' "$PREP_JSON5")"
+assert_eq "all 6 apps marked skip" "6" "$SKIP_COUNT"
+
+# Test 8: Force overrides skip
+echo ""
+echo "--- Test 8: Force overrides skip ---"
+OUTPUT6="$(run_prep "$WORKDIR5" --force)"
+PREP_JSON6="$TMPDIR_BASE/prep-force.json"
+echo "$OUTPUT6" > "$PREP_JSON6"
+SKIP_COUNT2="$(jq '[.apps[] | select(.skip == true)] | length' "$PREP_JSON6")"
+assert_eq "force: 0 apps marked skip" "0" "$SKIP_COUNT2"
+
 test_summary
