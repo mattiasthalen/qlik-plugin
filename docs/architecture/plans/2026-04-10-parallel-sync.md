@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Parallelize sync by dispatching multiple Claude Code agents, each syncing a batch of apps concurrently.
+**Goal:** Parallelize sync by dispatching multiple Claude Code agents, each syncing a batch of apps concurrently via the tenant-appropriate app script.
 
-**Architecture:** Extend the sync skill's Step 4 (sequential loop) to dispatch up to 5 parallel agents. Each agent calls `sync-app.sh` for its batch of apps and returns a results JSON array. The skill collects results progressively, concatenates them, and calls `sync-finalize.sh` once. No new scripts — changes are SKILL.md + allowed-tools + tests only.
+**Architecture:** Extend the sync skill's Step 4 (sequential loop) to dispatch up to 5 parallel agents per tenant. Each agent calls `sync-cloud-app.sh` or `sync-onprem-app.sh` for its batch of apps and returns a results JSON array. The skill collects results progressively, concatenates them, and calls `sync-finalize.sh` once per tenant. No new scripts — changes are SKILL.md + allowed-tools + tests only.
 
 **Tech Stack:** Claude Code skills (SKILL.md), Agent tool, bash, jq
 
@@ -22,7 +22,7 @@
 ### Task 1: Add parallel sync test assertions
 
 **Files:**
-- Modify: `tests/test-sync.sh:24-40`
+- Modify: `tests/test-sync.sh:39` (before `test_summary`)
 
 - [ ] **Step 1: Write failing tests for parallel sync content in SKILL.md**
 
@@ -38,12 +38,14 @@ assert_contains "mentions progressive reporting" "$SKILL_CONTENT" "Batch"
 assert_contains "mentions zero non-skip handling" "$SKILL_CONTENT" "0 non-skip"
 assert_contains "mentions results concatenation" "$SKILL_CONTENT" "concatenate"
 assert_contains "mentions agent failure handling" "$SKILL_CONTENT" "agent failed"
+assert_contains "mentions cloud app script in agent prompt" "$SKILL_CONTENT" "sync-cloud-app.sh"
+assert_contains "mentions onprem app script in agent prompt" "$SKILL_CONTENT" "sync-onprem-app.sh"
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `bash tests/test-sync.sh`
-Expected: 7 FAIL (Agent, batch splitting, distribution, progressive reporting, zero non-skip, concatenation, agent failure — none exist in SKILL.md yet)
+Expected: 7 new FAIL (Agent, batch splitting, distribution, progressive reporting, zero non-skip, concatenation, agent failure). The cloud/onprem script assertions may PASS since those names already exist in SKILL.md allowed-tools.
 
 - [ ] **Step 3: Commit failing tests**
 
@@ -58,7 +60,7 @@ git push
 ### Task 2: Add Agent to allowed-tools
 
 **Files:**
-- Modify: `skills/sync/SKILL.md:1-20` (frontmatter)
+- Modify: `skills/sync/SKILL.md:1-25` (frontmatter)
 
 - [ ] **Step 1: Add Agent to allowed-tools in frontmatter**
 
@@ -66,13 +68,18 @@ Add `- Agent` to the `allowed-tools` list in the YAML frontmatter, after the exi
 
 ```yaml
 allowed-tools:
-  - "Bash(bash ${CLAUDE_SKILL_ROOT}/scripts/sync-prep.sh:*)"
-  - "Bash(bash ${CLAUDE_SKILL_ROOT}/scripts/sync-app.sh:*)"
+  - "Bash(bash ${CLAUDE_SKILL_ROOT}/scripts/sync-cloud-prep.sh:*)"
+  - "Bash(bash ${CLAUDE_SKILL_ROOT}/scripts/sync-cloud-app.sh:*)"
+  - "Bash(bash ${CLAUDE_SKILL_ROOT}/scripts/sync-onprem-prep.sh:*)"
+  - "Bash(bash ${CLAUDE_SKILL_ROOT}/scripts/sync-onprem-app.sh:*)"
   - "Bash(bash ${CLAUDE_SKILL_ROOT}/scripts/sync-finalize.sh:*)"
   - "Bash(cat /tmp/qlik-sync-prep.json:*)"
   - "Bash(cat /tmp/qlik-sync-results.json:*)"
   - "Bash(echo:*)"
   - Bash(qlik app ls:*)
+  - Bash(qlik qrs app:*)
+  - Bash(qlik qrs stream:*)
+  - Bash(which:*)
   - Bash(date:*)
   - Read
   - Write
@@ -97,11 +104,11 @@ git push
 ### Task 3: Replace sequential loop with parallel dispatch in SKILL.md
 
 **Files:**
-- Modify: `skills/sync/SKILL.md:72-87` (Step 4)
+- Modify: `skills/sync/SKILL.md:102-116` (Step 4)
 
 - [ ] **Step 1: Replace Step 4 content**
 
-Replace the entire "## Step 4: Sync Loop with Progress" section with this parallel dispatch flow:
+Replace the entire "## Step 4: Sync Loop with Progress" section (lines 102-116) with this parallel dispatch flow:
 
 ```markdown
 ## Step 4: Parallel Sync
@@ -122,7 +129,11 @@ If 0 non-skip apps remain, skip to Step 5 (finalize).
 
 ### 4c: Dispatch agents
 
-Resolve `${CLAUDE_SKILL_ROOT}` to an absolute path. Report to user:
+Resolve `${CLAUDE_SKILL_ROOT}` to an absolute path. Determine the app script based on tenant type:
+- **Cloud:** `{resolvedSkillRoot}/scripts/sync-cloud-app.sh`
+- **On-prem:** `{resolvedSkillRoot}/scripts/sync-onprem-app.sh`
+
+Report to user:
 > Dispatching **N** parallel agents...
 
 Spawn all agents simultaneously using the Agent tool. Each agent receives this prompt (fill in the values):
@@ -131,7 +142,7 @@ Spawn all agents simultaneously using the Agent tool. Each agent receives this p
 Sync batch {batchNumber} of {totalBatches} for parallel sync.
 
 For each app in the list below, run:
-  bash {resolvedSkillRoot}/scripts/sync-app.sh "{resourceId}" "{targetPath}"
+  bash {syncAppScript} "{resourceId}" "{targetPath}"
 
 After processing all apps, return a JSON array of results:
 [
@@ -141,7 +152,7 @@ After processing all apps, return a JSON array of results:
 
 Rules:
 - Process apps sequentially within your batch
-- On sync-app.sh failure (non-zero exit), mark status "error" with stderr as error message
+- On script failure (non-zero exit), mark status "error" with stderr as error message
 - Continue to next app on failure — do not abort batch
 - Return the complete results array when done
 
@@ -149,12 +160,14 @@ Apps to sync:
 {JSON array of app objects for this batch}
 ```
 
+Where `{syncAppScript}` is the resolved absolute path to `sync-cloud-app.sh` or `sync-onprem-app.sh`.
+
 ### 4d: Collect results progressively
 
 As each agent completes, parse its returned JSON results array and report:
 > Batch **N**/**M** complete: **X** synced, **Y** errors
 
-If an agent fails entirely (crash/timeout), mark all apps in that Batch as errors:
+If an agent fails entirely (crash/timeout), mark all apps in that batch as errors:
 `{"resourceId": "<id>", "status": "error", "error": "agent failed"}`
 Report: `Batch N/M FAILED: agent error`
 
@@ -166,7 +179,7 @@ After all agents complete, concatenate all agent result arrays with the skip res
 - [ ] **Step 2: Run tests to verify parallel assertions pass**
 
 Run: `bash tests/test-sync.sh`
-Expected: All 7 parallel sync assertions PASS. All previous assertions still PASS.
+Expected: All 9 parallel sync assertions PASS. All previous assertions still PASS.
 
 - [ ] **Step 3: Commit**
 
