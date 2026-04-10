@@ -155,4 +155,4 @@ Need to support two different sync backends. PR #8 already splits sync into thre
    - **Chosen**
 
 ### Decision
-Six scripts: sync-cloud-{prep,app,finalize}.sh and sync-onprem-{prep,app,finalize}.sh, plus sync-lib.sh for shared helpers. Both prep scripts output identical JSON format so the skill loop is type-agnostic.
+Five scripts: sync-cloud-{prep,app}.sh, sync-onprem-{prep,app}.sh, and shared sync-finalize.sh, plus sync-lib.sh for shared helpers. Both prep scripts output identical JSON format so the skill loop and finalize are type-agnostic.

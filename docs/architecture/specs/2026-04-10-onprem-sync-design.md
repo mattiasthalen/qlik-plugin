@@ -77,7 +77,7 @@ No app-type level on-prem. No config.yml, connections.yml, or objects/ (qlik-par
 
 ## Script Architecture
 
-Builds on PR #8's three-phase decomposition. Six scripts + shared lib.
+Builds on PR #8's three-phase decomposition. Five scripts + shared lib (finalize is shared).
 
 ### sync-lib.sh — Shared Helpers
 
@@ -162,9 +162,7 @@ Exit 0 on success, 1 on any step failure.
 
 ### sync-onprem-finalize.sh
 
-Same logic as cloud finalize — uses sync-lib.sh helpers. Identical interface.
-
-Could be a single `sync-finalize.sh` shared by both, since it only reads prep JSON + results JSON (type-agnostic).
+Single shared `sync-finalize.sh` used by both cloud and on-prem. It only reads prep JSON + results JSON — both type-agnostic. No need for separate finalize scripts.
 
 ## SKILL.md Changes
 
@@ -185,10 +183,9 @@ Add on-prem scripts and qlik-parser:
 allowed-tools:
   - "Bash(bash ${CLAUDE_SKILL_ROOT}/scripts/sync-cloud-prep.sh:*)"
   - "Bash(bash ${CLAUDE_SKILL_ROOT}/scripts/sync-cloud-app.sh:*)"
-  - "Bash(bash ${CLAUDE_SKILL_ROOT}/scripts/sync-cloud-finalize.sh:*)"
   - "Bash(bash ${CLAUDE_SKILL_ROOT}/scripts/sync-onprem-prep.sh:*)"
   - "Bash(bash ${CLAUDE_SKILL_ROOT}/scripts/sync-onprem-app.sh:*)"
-  - "Bash(bash ${CLAUDE_SKILL_ROOT}/scripts/sync-onprem-finalize.sh:*)"
+  - "Bash(bash ${CLAUDE_SKILL_ROOT}/scripts/sync-finalize.sh:*)"
   - Bash(qlik app ls:*)
   - Bash(qlik qrs app:*)
   - Bash(qlik qrs stream:*)
