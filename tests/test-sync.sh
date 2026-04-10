@@ -37,4 +37,16 @@ assert_contains "mentions ETA" "$SKILL_CONTENT" "ETA"
 assert_contains "mentions progress" "$SKILL_CONTENT" "progress"
 assert_contains "references cli-commands.md" "$SKILL_CONTENT" "cli-commands.md"
 
+echo ""
+echo "=== parallel sync tests ==="
+assert_contains "mentions Agent in allowed-tools" "$SKILL_CONTENT" "Agent"
+assert_contains "mentions batch splitting" "$SKILL_CONTENT" "min(nonSkipApps, 5)"
+assert_contains "mentions distribution rule" "$SKILL_CONTENT" "floor"
+assert_contains "mentions progressive reporting" "$SKILL_CONTENT" "Batch"
+assert_contains "mentions zero non-skip handling" "$SKILL_CONTENT" "0 non-skip"
+assert_contains "mentions results concatenation" "$SKILL_CONTENT" "concatenate"
+assert_contains "mentions agent failure handling" "$SKILL_CONTENT" "agent failed"
+assert_contains "mentions cloud app script in agent prompt" "$SKILL_CONTENT" "sync-cloud-app.sh"
+assert_contains "mentions onprem app script in agent prompt" "$SKILL_CONTENT" "sync-onprem-app.sh"
+
 test_summary
