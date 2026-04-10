@@ -1,6 +1,6 @@
 #!/bin/bash
 # sync-tenant.sh — Sync Qlik Cloud apps to local filesystem
-# Convenience wrapper that calls sync-prep.sh, sync-app.sh, sync-finalize.sh
+# Convenience wrapper that calls sync-cloud-prep.sh, sync-cloud-app.sh, sync-finalize.sh
 # Usage: sync-tenant.sh [--space "Name"] [--app "Pattern"] [--id <GUID>] [--force]
 set -euo pipefail
 
@@ -11,7 +11,7 @@ PREP_FILE="$(mktemp)"
 RESULTS_FILE="$(mktemp)"
 trap 'rm -f "$PREP_FILE" "$RESULTS_FILE"' EXIT
 
-bash "$SCRIPT_DIR/sync-prep.sh" "$@" > "$PREP_FILE"
+bash "$SCRIPT_DIR/sync-cloud-prep.sh" "$@" > "$PREP_FILE"
 
 TOTAL_APPS="$(jq '.totalApps' "$PREP_FILE")"
 
@@ -49,7 +49,7 @@ while IFS= read -r app_line; do
     jq --arg id "$resource_id" '. + [{resourceId: $id, status: "skipped"}]' "$RESULTS_FILE" > "${RESULTS_FILE}.tmp" && mv "${RESULTS_FILE}.tmp" "$RESULTS_FILE"
   else
     echo "[$IDX/$TOTAL_APPS] Syncing: $display_space / $app_name..."
-    if bash "$SCRIPT_DIR/sync-app.sh" "$resource_id" "$target_path" 2>/dev/null; then
+    if bash "$SCRIPT_DIR/sync-cloud-app.sh" "$resource_id" "$target_path" 2>/dev/null; then
       jq --arg id "$resource_id" '. + [{resourceId: $id, status: "synced"}]' "$RESULTS_FILE" > "${RESULTS_FILE}.tmp" && mv "${RESULTS_FILE}.tmp" "$RESULTS_FILE"
     else
       echo "  WARNING: Failed to unbuild $app_name ($resource_id)" >&2

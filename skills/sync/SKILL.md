@@ -7,8 +7,8 @@ description: >
   failed partway and needs to resume, or when apps need re-syncing
   after changes on the tenant.
 allowed-tools:
-  - "Bash(bash ${CLAUDE_SKILL_ROOT}/scripts/sync-prep.sh:*)"
-  - "Bash(bash ${CLAUDE_SKILL_ROOT}/scripts/sync-app.sh:*)"
+  - "Bash(bash ${CLAUDE_SKILL_ROOT}/scripts/sync-cloud-prep.sh:*)"
+  - "Bash(bash ${CLAUDE_SKILL_ROOT}/scripts/sync-cloud-app.sh:*)"
   - "Bash(bash ${CLAUDE_SKILL_ROOT}/scripts/sync-finalize.sh:*)"
   - "Bash(cat /tmp/qlik-sync-prep.json:*)"
   - "Bash(cat /tmp/qlik-sync-results.json:*)"
@@ -60,7 +60,7 @@ Wait for confirmation before proceeding.
 ## Step 3: Run Prep
 
 ```bash
-bash ${CLAUDE_SKILL_ROOT}/scripts/sync-prep.sh [flags] > /tmp/qlik-sync-prep.json
+bash ${CLAUDE_SKILL_ROOT}/scripts/sync-cloud-prep.sh [flags] > /tmp/qlik-sync-prep.json
 cat /tmp/qlik-sync-prep.json
 ```
 
@@ -77,7 +77,7 @@ Initialize a results array. For each app:
 
 2. If `skip` is `false`: run sync and report progress:
    ```bash
-   bash ${CLAUDE_SKILL_ROOT}/scripts/sync-app.sh "<resourceId>" "<targetPath>"
+   bash ${CLAUDE_SKILL_ROOT}/scripts/sync-cloud-app.sh "<resourceId>" "<targetPath>"
    ```
    - On success (exit 0): report `[N/Total] Synced: <spaceType>/<spaceName> / <appName>` and append `{"resourceId": "<id>", "status": "synced"}` to results.
    - On failure (exit 1): report `[N/Total] ERROR: <spaceType>/<spaceName> / <appName>` and append `{"resourceId": "<id>", "status": "error", "error": "unbuild failed"}` to results. Continue to next app.

@@ -7,7 +7,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 source "$SCRIPT_DIR/helpers.sh"
 
-APP_SCRIPT="$REPO_ROOT/skills/sync/scripts/sync-app.sh"
+APP_SCRIPT="$REPO_ROOT/skills/sync/scripts/sync-cloud-app.sh"
 MOCK_DIR="$SCRIPT_DIR/mock-qlik"
 
 TMPDIR_BASE="$(mktemp -d)"
