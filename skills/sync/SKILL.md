@@ -7,9 +7,16 @@ description: >
   failed partway and needs to resume, or when apps need re-syncing
   after changes on the tenant.
 allowed-tools:
-  - "Bash(bash ${CLAUDE_SKILL_ROOT}/scripts/sync-tenant.sh:*)"
+  - "Bash(bash ${CLAUDE_SKILL_ROOT}/scripts/sync-prep.sh:*)"
+  - "Bash(bash ${CLAUDE_SKILL_ROOT}/scripts/sync-app.sh:*)"
+  - "Bash(bash ${CLAUDE_SKILL_ROOT}/scripts/sync-finalize.sh:*)"
+  - "Bash(cat /tmp/qlik-sync-prep.json:*)"
+  - "Bash(cat /tmp/qlik-sync-results.json:*)"
+  - "Bash(echo:*)"
   - Bash(qlik app ls:*)
+  - Bash(date:*)
   - Read
+  - Write
 ---
 
 # Qlik Sync
@@ -50,29 +57,52 @@ If the tenant has more than 50 apps, warn the user:
 
 Wait for confirmation before proceeding.
 
-## Step 3: Run Sync Script
+## Step 3: Run Prep
 
 ```bash
-bash ${CLAUDE_SKILL_ROOT}/scripts/sync-tenant.sh [flags]
+bash ${CLAUDE_SKILL_ROOT}/scripts/sync-prep.sh [flags] > /tmp/qlik-sync-prep.json
+cat /tmp/qlik-sync-prep.json
 ```
 
-The script handles:
-- Listing apps (with optional space/name/ID filter)
-- Resolving space names from space IDs
-- Unbuilding each app to `.qlik-sync/<tenant>/<space>/<app-name> (<short-id>)/`
-- Skipping already-synced apps (resume on failure) unless `--force`
-- Building `.qlik-sync/index.json` with all app metadata
-- Updating `.qlik-sync/config.json` with `lastSync` timestamp
+Read the JSON output. Report to the user:
+> Found **N** apps (**X** to sync, **Y** already synced)
 
-Progress is reported to stdout: `[3/47] Syncing: Finance Prod / Sales Dashboard...`
+## Step 4: Sync Loop with Progress
 
-## Step 4: Report Results
+Loop through each app in the prep JSON. Track timing for ETA.
 
-Read the script's stdout output and report to the user. The last line contains the summary.
+Initialize a results array. For each app:
+
+1. If `skip` is `true`: report `[N/Total] SKIP: <spaceType>/<spaceName> / <appName>` and append `{"resourceId": "<id>", "status": "skipped"}` to results.
+
+2. If `skip` is `false`: run sync and report progress:
+   ```bash
+   bash ${CLAUDE_SKILL_ROOT}/scripts/sync-app.sh "<resourceId>" "<targetPath>"
+   ```
+   - On success (exit 0): report `[N/Total] Synced: <spaceType>/<spaceName> / <appName>` and append `{"resourceId": "<id>", "status": "synced"}` to results.
+   - On failure (exit 1): report `[N/Total] ERROR: <spaceType>/<spaceName> / <appName>` and append `{"resourceId": "<id>", "status": "error", "error": "unbuild failed"}` to results. Continue to next app.
+
+3. **ETA:** After 3+ non-skipped apps, track average time per app and report estimated remaining time: `(~Xm remaining)` or `(~Xs remaining)`.
+
+After the loop, write results to `/tmp/qlik-sync-results.json`.
+
+## Step 5: Finalize
+
+```bash
+bash ${CLAUDE_SKILL_ROOT}/scripts/sync-finalize.sh /tmp/qlik-sync-prep.json /tmp/qlik-sync-results.json
+```
+
+## Step 6: Report Results
+
+Read the finalize stdout for the summary line. Report to the user:
+> Sync complete. **X** synced, **Y** skipped, **Z** errors (**N** apps in index).
+> Run `/qlik:inspect` to explore your apps.
+
+If there were errors, list the failed apps and suggest re-running with `--force` for those specific apps.
 
 If the script exits with an error, help diagnose:
 - **"config.json not found"** → suggest running `/qlik:setup`
-- **401/auth errors in output** → suggest `qlik context login` to re-authenticate, then re-run sync (resume will skip already-synced apps)
+- **401/auth errors** → suggest `qlik context login` to re-authenticate
 - **Network errors** → suggest checking VPN/proxy and tenant URL
 
 ## Output Structure
@@ -102,8 +132,3 @@ After sync, apps are organized as:
         └── <spaceId>/
             └── ...
 ```
-
-## Done
-
-Report to the user:
-> Sync complete. Run `/qlik:inspect` to explore your apps.
