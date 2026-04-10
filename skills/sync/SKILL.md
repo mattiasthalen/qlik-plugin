@@ -129,6 +129,8 @@ Spawn all agents simultaneously using the Agent tool. Each agent receives this p
 
 > Sync batch {batchNumber} of {totalBatches} for parallel sync.
 >
+> Run all commands from: {workingDirectory}
+>
 > For each app in the list below, run:
 >   bash {syncAppScript} "{resourceId}" "{targetPath}"
 >
