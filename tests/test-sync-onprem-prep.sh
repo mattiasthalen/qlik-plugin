@@ -135,4 +135,41 @@ else
   echo "  FAIL: expected 2 non-skipped apps, got $NOSKIP_COUNT"
 fi
 
+# Test 6: Cache hit — fresh cache file skips API calls
+echo ""
+echo "--- Test 6: Cache hit ---"
+rm -f /tmp/qlik-sync-prep-onprem-ctx-*.json
+WORKDIR5="$(setup_workdir)"
+FIRST_OUTPUT="$(run_prep "$WORKDIR5")"
+WORKDIR5_HASH="$(echo "$WORKDIR5" | md5sum | cut -c1-8)"
+CACHE_FILE="/tmp/qlik-sync-prep-onprem-ctx-${WORKDIR5_HASH}.json"
+TESTS_RUN=$((TESTS_RUN + 1))
+if [ -f "$CACHE_FILE" ]; then
+  SECOND_OUTPUT="$(run_prep "$WORKDIR5")"
+  if [ "$FIRST_OUTPUT" = "$SECOND_OUTPUT" ]; then
+    TESTS_PASSED=$((TESTS_PASSED + 1))
+    echo "  PASS: second run returns cached output"
+  else
+    TESTS_FAILED=$((TESTS_FAILED + 1))
+    echo "  FAIL: cached output differs from first run"
+  fi
+else
+  TESTS_FAILED=$((TESTS_FAILED + 1))
+  echo "  FAIL: cache file not created at $CACHE_FILE"
+fi
+
+# Test 7: Cache bypass with --force
+echo ""
+echo "--- Test 7: Cache bypass with --force ---"
+TESTS_RUN=$((TESTS_RUN + 1))
+FORCE_OUTPUT="$(run_prep "$WORKDIR5" --force)"
+FORCE_APPS="$(echo "$FORCE_OUTPUT" | jq '.totalApps')"
+if [ "$FORCE_APPS" = "3" ]; then
+  TESTS_PASSED=$((TESTS_PASSED + 1))
+  echo "  PASS: --force bypasses cache and fetches fresh data"
+else
+  TESTS_FAILED=$((TESTS_FAILED + 1))
+  echo "  FAIL: expected 3 apps with --force, got $FORCE_APPS"
+fi
+
 test_summary

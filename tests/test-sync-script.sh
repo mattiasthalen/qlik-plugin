@@ -115,6 +115,7 @@ assert_json_field "app-001 path" "$INDEX" '.apps["app-001"].path' \
 # Test 4: Resume
 echo ""
 echo "--- Test 4: Resume (skip existing) ---"
+rm -f /tmp/qlik-sync-prep-test-ctx-*.json
 OUTPUT2="$(run_sync "$WORKDIR")"
 assert_contains "resume has SKIP" "$OUTPUT2" "SKIP"
 

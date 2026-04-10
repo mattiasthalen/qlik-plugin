@@ -122,4 +122,67 @@ echo "--- detect_tenant_type ---"
 assert_eq "detect_tenant_type cloud" "cloud" "$(detect_tenant_type "https://my.qlikcloud.com")"
 assert_eq "detect_tenant_type on-prem" "on-prem" "$(detect_tenant_type "https://onprem.example.com")"
 
+# Test: check_cache returns cached content when fresh
+echo ""
+echo "--- Test: check_cache hit ---"
+CACHE_DIR="$(mktemp -d)"
+CACHE_FILE="$CACHE_DIR/qlik-sync-prep-test-ctx.json"
+echo '{"cached":true}' > "$CACHE_FILE"
+TESTS_RUN=$((TESTS_RUN + 1))
+CACHE_RESULT="$(check_cache "$CACHE_FILE" false)"
+CACHE_EXIT=$?
+if [ "$CACHE_EXIT" -eq 0 ] && [ "$CACHE_RESULT" = '{"cached":true}' ]; then
+  TESTS_PASSED=$((TESTS_PASSED + 1))
+  echo "  PASS: cache hit returns content"
+else
+  TESTS_FAILED=$((TESTS_FAILED + 1))
+  echo "  FAIL: cache hit expected content, got exit=$CACHE_EXIT output=$CACHE_RESULT"
+fi
+rm -rf "$CACHE_DIR"
+
+# Test: check_cache returns non-zero for stale cache
+echo ""
+echo "--- Test: check_cache miss (stale) ---"
+CACHE_DIR2="$(mktemp -d)"
+CACHE_FILE2="$CACHE_DIR2/qlik-sync-prep-old.json"
+echo '{"cached":true}' > "$CACHE_FILE2"
+touch -t 200001010000 "$CACHE_FILE2"
+TESTS_RUN=$((TESTS_RUN + 1))
+if check_cache "$CACHE_FILE2" false >/dev/null 2>&1; then
+  TESTS_FAILED=$((TESTS_FAILED + 1))
+  echo "  FAIL: stale cache should miss"
+else
+  TESTS_PASSED=$((TESTS_PASSED + 1))
+  echo "  PASS: stale cache returns non-zero"
+fi
+rm -rf "$CACHE_DIR2"
+
+# Test: check_cache bypassed when force=true
+echo ""
+echo "--- Test: check_cache bypass with force ---"
+CACHE_DIR3="$(mktemp -d)"
+CACHE_FILE3="$CACHE_DIR3/qlik-sync-prep-force.json"
+echo '{"cached":true}' > "$CACHE_FILE3"
+TESTS_RUN=$((TESTS_RUN + 1))
+if check_cache "$CACHE_FILE3" true >/dev/null 2>&1; then
+  TESTS_FAILED=$((TESTS_FAILED + 1))
+  echo "  FAIL: force should bypass cache"
+else
+  TESTS_PASSED=$((TESTS_PASSED + 1))
+  echo "  PASS: force bypasses cache"
+fi
+rm -rf "$CACHE_DIR3"
+
+# Test: check_cache returns non-zero when no file exists
+echo ""
+echo "--- Test: check_cache miss (no file) ---"
+TESTS_RUN=$((TESTS_RUN + 1))
+if check_cache "/tmp/nonexistent-cache-file.json" false >/dev/null 2>&1; then
+  TESTS_FAILED=$((TESTS_FAILED + 1))
+  echo "  FAIL: missing file should miss"
+else
+  TESTS_PASSED=$((TESTS_PASSED + 1))
+  echo "  PASS: missing file returns non-zero"
+fi
+
 test_summary

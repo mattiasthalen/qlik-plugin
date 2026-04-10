@@ -54,6 +54,17 @@ fi
 
 TENANT_DOMAIN="$(echo "$SERVER" | sed -E 's|https?://(.+)\.qlikcloud\.com.*|\1|')"
 
+# --- Cache check ---
+CACHE_KEY="${CONTEXT}"
+if [ -n "$SPACE_FILTER" ]; then CACHE_KEY="${CACHE_KEY}-s-${SPACE_FILTER}"; fi
+if [ -n "$APP_FILTER" ]; then CACHE_KEY="${CACHE_KEY}-a-${APP_FILTER}"; fi
+if [ -n "$ID_FILTER" ]; then CACHE_KEY="${CACHE_KEY}-i-${ID_FILTER}"; fi
+WORKDIR_HASH="$(pwd | md5sum | cut -c1-8)"
+CACHE_FILE="/tmp/qlik-sync-prep-${CACHE_KEY}-${WORKDIR_HASH}.json"
+if check_cache "$CACHE_FILE" "$FORCE"; then
+  exit 0
+fi
+
 # --- Check dependencies ---
 for cmd in qlik jq; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
@@ -213,11 +224,13 @@ while IFS= read -r app_line; do
 done < <(jq -c '.[]' "$APPS_FILE")
 
 # --- Output final JSON ---
-jq -n \
+OUTPUT="$(jq -n \
   --arg tenant "$TENANT_DOMAIN" \
   --arg tenantId "$TENANT_ID" \
   --arg context "$CONTEXT" \
   --arg server "$SERVER" \
   --argjson totalApps "$APP_COUNT" \
   --slurpfile apps "$APP_ENTRIES" \
-  '{tenant: $tenant, tenantId: $tenantId, context: $context, server: $server, totalApps: $totalApps, apps: $apps}'
+  '{tenant: $tenant, tenantId: $tenantId, context: $context, server: $server, totalApps: $totalApps, apps: $apps}')"
+
+echo "$OUTPUT" | tee "$CACHE_FILE"

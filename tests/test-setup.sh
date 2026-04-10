@@ -9,7 +9,7 @@ echo "=== plugin.json tests ==="
 
 assert_file_exists "plugin.json exists" "$REPO_ROOT/.claude-plugin/plugin.json"
 assert_json_field "plugin name is qlik" "$REPO_ROOT/.claude-plugin/plugin.json" ".name" "qlik"
-assert_json_field "plugin version is 0.1.0" "$REPO_ROOT/.claude-plugin/plugin.json" ".version" "0.1.0"
+assert_json_field "plugin version is 0.3.0" "$REPO_ROOT/.claude-plugin/plugin.json" ".version" "0.3.0"
 assert_json_field "plugin license is MIT" "$REPO_ROOT/.claude-plugin/plugin.json" ".license" "MIT"
 
 # Description should mention key capabilities

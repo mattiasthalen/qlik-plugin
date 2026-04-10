@@ -47,3 +47,26 @@ detect_tenant_type() {
     echo "on-prem"
   fi
 }
+
+# check_cache <cache_file> <force>
+# If cache file exists, is <5min old, and force is not "true", prints contents and returns 0.
+# Otherwise returns 1.
+check_cache() {
+  local cache_file="$1"
+  local force="$2"
+
+  if [ "$force" = "true" ]; then
+    return 1
+  fi
+
+  if [ ! -f "$cache_file" ]; then
+    return 1
+  fi
+
+  if [ -z "$(find "$(dirname "$cache_file")" -name "$(basename "$cache_file")" -mmin -5 2>/dev/null)" ]; then
+    return 1
+  fi
+
+  cat "$cache_file"
+  return 0
+}

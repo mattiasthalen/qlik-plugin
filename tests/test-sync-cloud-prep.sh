@@ -152,8 +152,11 @@ assert_json_field "id filter correct app" "$PREP_JSON4" '.apps[0].resourceId' "a
 echo ""
 echo "--- Test 7: Resume marks skip ---"
 WORKDIR5="$(setup_workdir)"
+WORKDIR5_HASH="$(echo "$WORKDIR5" | md5sum | cut -c1-8)"
 # First run to create files
 (cd "$WORKDIR5" && PATH="$MOCK_DIR:$PATH" bash "$REPO_ROOT/skills/sync/scripts/sync-tenant.sh" 2>/dev/null) >/dev/null
+# Clear any stale cache so skip detection runs fresh
+rm -f "/tmp/qlik-sync-prep-test-ctx-${WORKDIR5_HASH}.json"
 # Now prep should mark all as skip
 OUTPUT5="$(run_prep "$WORKDIR5")"
 PREP_JSON5="$TMPDIR_BASE/prep-skip.json"
@@ -169,5 +172,45 @@ PREP_JSON6="$TMPDIR_BASE/prep-force.json"
 echo "$OUTPUT6" > "$PREP_JSON6"
 SKIP_COUNT2="$(jq '[.apps[] | select(.skip == true)] | length' "$PREP_JSON6")"
 assert_eq "force: 0 apps marked skip" "0" "$SKIP_COUNT2"
+
+# Test 9: Cache hit — fresh cache file skips API calls
+echo ""
+echo "--- Test 9: Cache hit ---"
+WORKDIR7="$(setup_workdir)"
+WORKDIR7_HASH="$(echo "$WORKDIR7" | md5sum | cut -c1-8)"
+CACHE_FILE="/tmp/qlik-sync-prep-test-ctx-${WORKDIR7_HASH}.json"
+rm -f "$CACHE_FILE"
+# Run once to populate cache
+FIRST_OUTPUT="$(run_prep "$WORKDIR7")"
+TESTS_RUN=$((TESTS_RUN + 1))
+if [ -f "$CACHE_FILE" ]; then
+  # Run again — should return cached output
+  SECOND_OUTPUT="$(run_prep "$WORKDIR7")"
+  if [ "$FIRST_OUTPUT" = "$SECOND_OUTPUT" ]; then
+    TESTS_PASSED=$((TESTS_PASSED + 1))
+    echo "  PASS: second run returns cached output"
+  else
+    TESTS_FAILED=$((TESTS_FAILED + 1))
+    echo "  FAIL: cached output differs from first run"
+  fi
+else
+  TESTS_FAILED=$((TESTS_FAILED + 1))
+  echo "  FAIL: cache file not created at $CACHE_FILE"
+fi
+
+# Test 10: Cache bypass with --force
+echo ""
+echo "--- Test 10: Cache bypass with --force ---"
+# Cache file should still exist from Test 9
+TESTS_RUN=$((TESTS_RUN + 1))
+FORCE_OUTPUT="$(run_prep "$WORKDIR7" --force)"
+FORCE_APPS="$(echo "$FORCE_OUTPUT" | jq '.totalApps')"
+if [ "$FORCE_APPS" = "6" ]; then
+  TESTS_PASSED=$((TESTS_PASSED + 1))
+  echo "  PASS: --force bypasses cache and fetches fresh data"
+else
+  TESTS_FAILED=$((TESTS_FAILED + 1))
+  echo "  FAIL: expected 6 apps with --force, got $FORCE_APPS"
+fi
 
 test_summary
