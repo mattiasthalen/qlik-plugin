@@ -115,6 +115,7 @@ If no existing config, create new:
     {
       "context": "<context-name>",
       "server": "<tenant-url>",
+      "type": "cloud",
       "lastSync": null
     }
   ]
