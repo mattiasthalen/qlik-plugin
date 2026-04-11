@@ -10,6 +10,13 @@ if ! command -v qlik &> /dev/null; then
   echo "qlik-cli installed: $(qlik version)"
 fi
 
+# Install qs for syncing Qlik apps
+if ! command -v qs &> /dev/null; then
+  echo "Installing qs..."
+  curl -sL https://github.com/mattiasthalen/qlik-sync/releases/latest/download/qs-Linux-x86_64.tar.gz | sudo tar xz -C /usr/local/bin qs
+  echo "qs installed: $(qs version)"
+fi
+
 # Verify jq is available (installed by base devcontainer image)
 if ! command -v jq &> /dev/null; then
   echo "Installing jq..."
