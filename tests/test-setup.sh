@@ -40,9 +40,7 @@ assert_contains "mentions qlik directory" "$CONTENT" "qlik/"
 assert_contains "mentions config.json" "$CONTENT" "config.json"
 assert_contains "mentions .gitignore" "$CONTENT" ".gitignore"
 
-# On-prem support checks
-assert_contains "mentions on-prem detection" "$CONTENT" "qlikcloud.com"
-assert_contains "mentions server-type Windows" "$CONTENT" "server-type Windows"
+# Multi-tenant config check (cloud-only)
 assert_contains "mentions multi-tenant config" "$CONTENT" "tenants"
 
 test_summary
