@@ -13,7 +13,10 @@ fi
 # Install qs for syncing Qlik apps
 if ! command -v qs &> /dev/null; then
   echo "Installing qs..."
-  curl -sL https://github.com/mattiasthalen/qlik-sync/releases/latest/download/qs-Linux-x86_64.tar.gz | sudo tar xz -C /usr/local/bin qs
+  QS_VERSION=$(curl -sI https://github.com/mattiasthalen/qlik-sync/releases/latest | grep -i '^location:' | sed 's|.*/v||;s/\r//')
+  curl -sL -o /tmp/qs.tar.gz "https://github.com/mattiasthalen/qlik-sync/releases/download/v${QS_VERSION}/qlik-sync_${QS_VERSION}_linux_amd64.tar.gz"
+  sudo tar xzf /tmp/qs.tar.gz -C /usr/local/bin qs
+  rm -f /tmp/qs.tar.gz
   echo "qs installed: $(qs version)"
 fi
 
