@@ -27,4 +27,17 @@ assert_contains "mentions space filter" "$CONTENT" "space"
 assert_contains "uses index path field" "$CONTENT" "path"
 assert_contains "teaches offline usage" "$CONTENT" "no API\|offline\|local"
 
+# Directory references should use qlik/ not .qlik-sync/
+assert_contains "uses qlik/ directory" "$CONTENT" "qlik/"
+
+if echo "$CONTENT" | grep -q '\.qlik-sync'; then
+  echo "  FAIL: should not mention .qlik-sync"
+  TESTS_RUN=$((TESTS_RUN + 1))
+  TESTS_FAILED=$((TESTS_FAILED + 1))
+else
+  echo "  PASS: does not mention .qlik-sync"
+  TESTS_RUN=$((TESTS_RUN + 1))
+  TESTS_PASSED=$((TESTS_PASSED + 1))
+fi
+
 test_summary

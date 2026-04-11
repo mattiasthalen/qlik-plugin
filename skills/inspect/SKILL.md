@@ -5,7 +5,7 @@ description: >
   apps use QVD", "show me the load script", "compare measures", "list
   apps in space", "what connections does this app use", "show variables",
   "compare expressions", "find field", or wants to explore their synced
-  Qlik environment. Works offline against .qlik-sync/ cache.
+  Qlik environment. Works offline against qlik/ cache.
 allowed-tools:
   - Read
   - Glob
@@ -14,21 +14,21 @@ allowed-tools:
 
 # Qlik Inspect
 
-Search, navigate, and compare across the local `.qlik-sync/` cache. This skill works entirely offline — no API calls, no network required. All data comes from the synced files on disk.
+Search, navigate, and compare across the local `qlik/` cache. This skill works entirely offline — no API calls, no network required. All data comes from the synced files on disk.
 
 ## Prerequisites
 
-Check that `.qlik-sync/index.json` exists. If not, tell the user:
+Check that `qlik/index.json` exists. If not, tell the user:
 > Run `/qlik:sync` first to pull apps from your Qlik Cloud tenant.
 
-Load `.qlik-sync/index.json` to understand what apps are available and where they live on disk.
+Load `qlik/index.json` to understand what apps are available and where they live on disk.
 
 ## Resolving App References
 
 Users will refer to apps by name, not ID. Use the index to resolve:
-1. Read `.qlik-sync/index.json`
+1. Read `qlik/index.json`
 2. Find the app entry matching the name (case-insensitive, partial match OK)
-3. Use the `path` field to locate files: `.qlik-sync/<path>/`
+3. Use the `path` field to locate files: `qlik/<path>/`
 
 If multiple apps match a partial name, list the matches and ask which one.
 
@@ -39,7 +39,7 @@ If multiple apps match a partial name, list the matches and ask which one.
 **Find a measure by name or expression:**
 
 Use Grep to search across all `measures.json` files:
-- By name: grep for the measure name across all `measures.json` files under `.qlik-sync/`
+- By name: grep for the measure name across all `measures.json` files under `qlik/`
 - By expression: grep for the expression pattern (e.g., `Sum(Amount)`)
 
 When showing results, include the app name (from index), measure title, and full expression (`qMeasure.qDef`).
@@ -69,11 +69,11 @@ Grep across all `connections.yml` files for connection names, types, or connecti
 
 **Show load script:**
 
-Read `.qlik-sync/<path>/script.qvs` where `<path>` is from the app's `path` field in `index.json` and display with QVS syntax highlighting (use ```qvs code fence).
+Read `qlik/<path>/script.qvs` where `<path>` is from the app's `path` field in `index.json` and display with QVS syntax highlighting (use ```qvs code fence).
 
 **List measures:**
 
-Read `.qlik-sync/<path>/measures.json` where `<path>` is from `index.json` and present as a table:
+Read `qlik/<path>/measures.json` where `<path>` is from `index.json` and present as a table:
 
 | Name | Expression | Description |
 |------|-----------|-------------|
@@ -81,7 +81,7 @@ Read `.qlik-sync/<path>/measures.json` where `<path>` is from `index.json` and p
 
 **List dimensions:**
 
-Read `.qlik-sync/<path>/dimensions.json` where `<path>` is from `index.json` and present as a table:
+Read `qlik/<path>/dimensions.json` where `<path>` is from `index.json` and present as a table:
 
 | Name | Field(s) | Description |
 |------|----------|-------------|
@@ -89,7 +89,7 @@ Read `.qlik-sync/<path>/dimensions.json` where `<path>` is from `index.json` and
 
 **List variables:**
 
-Read `.qlik-sync/<path>/variables.json` where `<path>` is from `index.json` and present as a table:
+Read `qlik/<path>/variables.json` where `<path>` is from `index.json` and present as a table:
 
 | Name | Definition | Comment |
 |------|-----------|---------|
@@ -97,11 +97,11 @@ Read `.qlik-sync/<path>/variables.json` where `<path>` is from `index.json` and 
 
 **Show connections:**
 
-Read `.qlik-sync/<path>/connections.yml` where `<path>` is from `index.json` and list name, type, and connection string.
+Read `qlik/<path>/connections.yml` where `<path>` is from `index.json` and list name, type, and connection string.
 
 **Show sheet objects:**
 
-List files in `.qlik-sync/<path>/objects/` where `<path>` is from `index.json` and read individual sheets to show their structure.
+List files in `qlik/<path>/objects/` where `<path>` is from `index.json` and read individual sheets to show their structure.
 
 ### Compare Across Apps
 
@@ -142,7 +142,7 @@ Filter `index.json` by `published` field.
 
 **Show sync status:**
 
-Read `.qlik-sync/config.json` for last sync time. Count apps in index. Report:
+Read `qlik/config.json` for last sync time. Count apps in index. Report:
 > Last synced: <timestamp>. **N** apps in local cache across **M** spaces.
 
 ## Presenting Results
