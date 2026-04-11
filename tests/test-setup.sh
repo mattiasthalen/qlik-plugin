@@ -9,7 +9,7 @@ echo "=== plugin.json tests ==="
 
 assert_file_exists "plugin.json exists" "$REPO_ROOT/.claude-plugin/plugin.json"
 assert_json_field "plugin name is qlik" "$REPO_ROOT/.claude-plugin/plugin.json" ".name" "qlik"
-assert_json_field "plugin version is 0.4.0" "$REPO_ROOT/.claude-plugin/plugin.json" ".version" "0.4.0"
+assert_json_field "plugin version is 0.4.1" "$REPO_ROOT/.claude-plugin/plugin.json" ".version" "0.4.1"
 assert_json_field "plugin license is MIT" "$REPO_ROOT/.claude-plugin/plugin.json" ".license" "MIT"
 
 # Description should mention key capabilities
@@ -45,5 +45,8 @@ assert_contains "mentions multi-tenant config" "$CONTENT" "tenants"
 
 # v0.1.0 migration must set type field
 assert_contains "migration sets type cloud" "$CONTENT" 'type.*cloud'
+
+# v0.2.0 append must not modify existing tenants
+assert_contains "append preserves existing tenants" "$CONTENT" "do not modify existing tenants"
 
 test_summary
