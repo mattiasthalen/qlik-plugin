@@ -15,6 +15,9 @@ assert_file_exists "sync SKILL.md exists" "$SKILL_FILE"
 assert_contains "frontmatter has name" "$SKILL_CONTENT" "name: sync"
 assert_contains "frontmatter has description" "$SKILL_CONTENT" "description:"
 
+# qs CLI prereq check
+assert_contains "checks for qs binary" "$SKILL_CONTENT" "which qs"
+
 # qs CLI integration
 assert_contains "mentions qs sync command" "$SKILL_CONTENT" "qs sync"
 assert_contains "mentions space filter" "$SKILL_CONTENT" "\-\-space"

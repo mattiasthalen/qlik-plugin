@@ -19,6 +19,15 @@ Pull apps from Qlik Cloud tenants to a local `qlik/` working copy using the `qs`
 
 ## Prerequisites
 
+Check that `qs` is installed:
+
+```bash
+which qs
+```
+
+If missing, tell the user:
+> Install qs from https://github.com/mattiasthalen/qlik-sync/releases and make sure `qs` is on your PATH.
+
 Check that `qlik/config.json` exists. If not, tell the user:
 > Run `/qlik:setup` first to configure your Qlik Cloud connection.
 

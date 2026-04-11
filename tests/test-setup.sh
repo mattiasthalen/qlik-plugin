@@ -43,4 +43,7 @@ assert_contains "mentions .gitignore" "$CONTENT" ".gitignore"
 # Multi-tenant config check (cloud-only)
 assert_contains "mentions multi-tenant config" "$CONTENT" "tenants"
 
+# v0.1.0 migration must set type field
+assert_contains "migration sets type cloud" "$CONTENT" 'type.*cloud'
+
 test_summary
