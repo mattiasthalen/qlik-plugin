@@ -32,7 +32,7 @@ assert_contains "frontmatter has description" "$FRONTMATTER" "description:"
 # Content checks — skill should teach these key behaviors
 CONTENT=$(cat "$SETUP_SKILL")
 assert_contains "mentions qlik prerequisite" "$CONTENT" "which qlik"
-assert_contains "mentions jq prerequisite" "$CONTENT" "which jq"
+assert_contains "mentions qs prerequisite" "$CONTENT" "which qs"
 assert_contains "mentions context create" "$CONTENT" "qlik context create"
 assert_contains "mentions context login" "$CONTENT" "qlik context login"
 assert_contains "mentions connectivity test" "$CONTENT" "qlik app ls"
@@ -42,7 +42,6 @@ assert_contains "mentions .gitignore" "$CONTENT" ".gitignore"
 
 # On-prem support checks
 assert_contains "mentions on-prem detection" "$CONTENT" "qlikcloud.com"
-assert_contains "mentions qlik-parser" "$CONTENT" "qlik-parser"
 assert_contains "mentions server-type Windows" "$CONTENT" "server-type Windows"
 assert_contains "mentions multi-tenant config" "$CONTENT" "tenants"
 

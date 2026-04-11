@@ -26,14 +26,14 @@ Verify both tools are installed:
 
 ```bash
 which qlik
-which jq
+which qs
 ```
 
 If `qlik` is missing, tell the user:
 > Install qlik-cli from https://qlik.dev/toolkits/qlik-cli/ and make sure `qlik` is on your PATH.
 
-If `jq` is missing, tell the user:
-> Install jq from https://jqlang.github.io/jq/download/ and make sure `jq` is on your PATH.
+If `qs` is missing, tell the user:
+> Install qs from https://github.com/mattiasthalen/qlik-sync/releases and make sure `qs` is on your PATH.
 
 Stop and wait for the user to install missing tools before continuing.
 
@@ -64,9 +64,6 @@ For **on-prem** tenants:
   ```bash
   qlik context create <name> --server https://server/jwt --api-key <JWT> --insecure --server-type Windows
   ```
-- Check for qlik-parser: `which qlik-parser`
-  - If missing: "On-prem sync requires qlik-parser. Download from https://github.com/mattiasthalen/qlik-parser/releases"
-  - Don't block setup — only needed at sync time
 
 ## Step 3: Create Context and Authenticate
 
