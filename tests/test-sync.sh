@@ -54,4 +54,15 @@ else
   TESTS_PASSED=$((TESTS_PASSED + 1))
 fi
 
+# Verify scripts directory removed
+if [ -d "$REPO_ROOT/skills/sync/scripts" ]; then
+  echo "  FAIL: skills/sync/scripts/ directory should not exist"
+  TESTS_RUN=$((TESTS_RUN + 1))
+  TESTS_FAILED=$((TESTS_FAILED + 1))
+else
+  echo "  PASS: skills/sync/scripts/ directory removed"
+  TESTS_RUN=$((TESTS_RUN + 1))
+  TESTS_PASSED=$((TESTS_PASSED + 1))
+fi
+
 test_summary

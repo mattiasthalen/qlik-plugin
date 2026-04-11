@@ -18,13 +18,6 @@ sync-template:
 test:
 	@bash tests/test-setup.sh
 	@bash tests/test-sync.sh
-	@bash tests/test-sync-lib.sh
-	@bash tests/test-sync-cloud-prep.sh
-	@bash tests/test-sync-onprem-prep.sh
-	@bash tests/test-sync-cloud-app.sh
-	@bash tests/test-sync-finalize.sh
-	@bash tests/test-sync-onprem-app.sh
-	@bash tests/test-sync-script.sh
 	@bash tests/test-inspect.sh
 	@bash tests/test-project.sh
 
