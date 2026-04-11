@@ -113,10 +113,10 @@ Verify the output is valid JSON containing at least one app. Report to the user:
 ## Step 5: Create Local Workspace
 
 ```bash
-mkdir -p .qlik-sync
+mkdir -p qlik
 ```
 
-If `.qlik-sync/config.json` exists:
+If `qlik/config.json` exists:
 - Read existing config
 - If v0.1.0 format (no `version` field or `version: "0.1.0"`), migrate to v0.2.0: wrap existing tenant into `tenants` array, auto-detect type from server URL
 - If v0.2.0 format, append new tenant to `tenants` array
@@ -141,21 +141,21 @@ Use the context name and server URL from the `qlik context ls` output. Set type 
 
 ## Step 6: Update .gitignore
 
-Check if `.qlik-sync/` is already in `.gitignore`:
+Check if `qlik/` is already in `.gitignore`:
 
 ```bash
-grep -q '.qlik-sync/' .gitignore 2>/dev/null
+grep -q 'qlik/' .gitignore 2>/dev/null
 ```
 
 If not found, append it:
 
 ```bash
-echo '.qlik-sync/' >> .gitignore
+echo 'qlik/' >> .gitignore
 ```
 
-The `.qlik-sync/` directory may contain connection context references and should not be committed.
+The `qlik/` directory may contain connection context references and should not be committed.
 
 ## Done
 
 Report to the user:
-> Qlik setup complete. Your workspace is ready at `.qlik-sync/`. Run `/qlik:sync` to pull apps from your tenant.
+> Qlik setup complete. Your workspace is ready at `qlik/`. Run `/qlik:sync` to pull apps from your tenant.

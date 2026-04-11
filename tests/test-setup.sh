@@ -36,7 +36,7 @@ assert_contains "mentions qs prerequisite" "$CONTENT" "which qs"
 assert_contains "mentions context create" "$CONTENT" "qlik context create"
 assert_contains "mentions context login" "$CONTENT" "qlik context login"
 assert_contains "mentions connectivity test" "$CONTENT" "qlik app ls"
-assert_contains "mentions .qlik-sync directory" "$CONTENT" ".qlik-sync"
+assert_contains "mentions qlik directory" "$CONTENT" "qlik/"
 assert_contains "mentions config.json" "$CONTENT" "config.json"
 assert_contains "mentions .gitignore" "$CONTENT" ".gitignore"
 
