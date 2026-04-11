@@ -8,54 +8,61 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/helpers.sh"
 
 SKILL_FILE="$REPO_ROOT/skills/sync/SKILL.md"
-CLI_REF="$REPO_ROOT/skills/sync/references/cli-commands.md"
 
-echo "=== sync references tests ==="
-assert_file_exists "cli-commands.md exists" "$CLI_REF"
-assert_contains "documents app ls" "$(cat "$CLI_REF")" "app ls"
-assert_contains "documents app unbuild" "$(cat "$CLI_REF")" "app unbuild"
-assert_contains "documents space ls" "$(cat "$CLI_REF")" "space ls"
-assert_contains "documents SaaS-only limitation" "$(cat "$CLI_REF")" "SaaS"
-assert_contains "documents pagination" "$(cat "$CLI_REF")" "limit"
-assert_contains "documents resourceId" "$(cat "$CLI_REF")" "resourceId"
-assert_contains "documents resourceAttributes" "$(cat "$CLI_REF")" "resourceAttributes"
-
-echo ""
 echo "=== sync SKILL.md tests ==="
 SKILL_CONTENT="$(cat "$SKILL_FILE")"
 assert_file_exists "sync SKILL.md exists" "$SKILL_FILE"
 assert_contains "frontmatter has name" "$SKILL_CONTENT" "name: sync"
 assert_contains "frontmatter has description" "$SKILL_CONTENT" "description:"
-assert_contains "mentions config.json check" "$SKILL_CONTENT" "config.json"
-assert_contains "mentions sync-cloud-prep.sh" "$SKILL_CONTENT" "sync-cloud-prep.sh"
-assert_contains "mentions sync-cloud-app.sh" "$SKILL_CONTENT" "sync-cloud-app.sh"
-assert_contains "mentions sync-finalize.sh" "$SKILL_CONTENT" "sync-finalize.sh"
+
+# qs CLI integration
+assert_contains "mentions qs sync command" "$SKILL_CONTENT" "qs sync"
+assert_contains "mentions space filter" "$SKILL_CONTENT" "\-\-space"
+assert_contains "mentions app filter" "$SKILL_CONTENT" "\-\-app"
+assert_contains "mentions id filter" "$SKILL_CONTENT" "\-\-id"
+assert_contains "mentions tenant filter" "$SKILL_CONTENT" "\-\-tenant"
+assert_contains "mentions force flag" "$SKILL_CONTENT" "\-\-force"
+
+# Exit code handling
+assert_contains "mentions exit code 0" "$SKILL_CONTENT" "exit.*0\|Exit code 0\|exit 0"
+assert_contains "mentions exit code 2 partial" "$SKILL_CONTENT" "exit.*2\|Exit code 2\|partial"
+
+# Output directory
+assert_contains "mentions qlik/ directory" "$SKILL_CONTENT" "qlik/"
+assert_contains "mentions config.json" "$SKILL_CONTENT" "config.json"
 assert_contains "mentions index.json" "$SKILL_CONTENT" "index.json"
-assert_contains "mentions space filtering" "$SKILL_CONTENT" "space"
-assert_contains "mentions force flag" "$SKILL_CONTENT" "force"
-assert_contains "mentions ETA" "$SKILL_CONTENT" "ETA"
-assert_contains "mentions progress" "$SKILL_CONTENT" "progress"
-assert_contains "references cli-commands.md" "$SKILL_CONTENT" "cli-commands.md"
 
-echo ""
-echo "=== parallel sync tests ==="
-assert_contains "mentions Agent in allowed-tools" "$SKILL_CONTENT" "Agent"
-assert_contains "mentions batch splitting" "$SKILL_CONTENT" "min(nonSkipApps, 5)"
-assert_contains "mentions distribution rule" "$SKILL_CONTENT" "floor"
-assert_contains "mentions progressive reporting" "$SKILL_CONTENT" "Batch"
-assert_contains "mentions zero non-skip handling" "$SKILL_CONTENT" "0 non-skip"
-assert_contains "mentions results concatenation" "$SKILL_CONTENT" "concatenate"
-assert_contains "mentions agent failure handling" "$SKILL_CONTENT" "agent failed"
-assert_contains "mentions cloud app script in agent prompt" "$SKILL_CONTENT" "sync-cloud-app.sh"
-assert_contains "mentions onprem app script in agent prompt" "$SKILL_CONTENT" "sync-onprem-app.sh"
+# Should NOT contain old bash script references
+SKILL_CONTENT_NEGATIVE="$SKILL_CONTENT"
+if echo "$SKILL_CONTENT_NEGATIVE" | grep -q "sync-cloud-prep.sh"; then
+  echo "  FAIL: should not mention sync-cloud-prep.sh"
+  TESTS_RUN=$((TESTS_RUN + 1))
+  TESTS_FAILED=$((TESTS_FAILED + 1))
+else
+  echo "  PASS: does not mention sync-cloud-prep.sh"
+  TESTS_RUN=$((TESTS_RUN + 1))
+  TESTS_PASSED=$((TESTS_PASSED + 1))
+fi
 
-echo ""
-echo "=== skill orchestration tests ==="
-assert_contains "mentions auto-resume after setup" "$SKILL_CONTENT" "resume the sync automatically"
-assert_contains "mentions timeout 120000" "$SKILL_CONTENT" "timeout: 120000"
-assert_contains "has execution notes section" "$SKILL_CONTENT" "Execution Notes"
-assert_contains "has troubleshooting section" "$SKILL_CONTENT" "Troubleshooting"
-assert_contains "mentions backgrounded commands" "$SKILL_CONTENT" "backgrounded"
-assert_contains "mentions cache file path" "$SKILL_CONTENT" "qlik-sync-prep-"
+if echo "$SKILL_CONTENT_NEGATIVE" | grep -q "Agent"; then
+  echo "  FAIL: should not mention Agent tool"
+  TESTS_RUN=$((TESTS_RUN + 1))
+  TESTS_FAILED=$((TESTS_FAILED + 1))
+else
+  echo "  PASS: does not mention Agent tool"
+  TESTS_RUN=$((TESTS_RUN + 1))
+  TESTS_PASSED=$((TESTS_PASSED + 1))
+fi
+
+# Verify scripts directory removed
+if [ -d "$REPO_ROOT/skills/sync/scripts" ]; then
+  echo "  FAIL: skills/sync/scripts/ directory should not exist"
+  TESTS_RUN=$((TESTS_RUN + 1))
+  TESTS_FAILED=$((TESTS_FAILED + 1))
+else
+  echo "  PASS: skills/sync/scripts/ directory removed"
+  TESTS_RUN=$((TESTS_RUN + 1))
+  TESTS_PASSED=$((TESTS_PASSED + 1))
+fi
 
 test_summary

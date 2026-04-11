@@ -26,14 +26,14 @@ Verify both tools are installed:
 
 ```bash
 which qlik
-which jq
+which qs
 ```
 
 If `qlik` is missing, tell the user:
 > Install qlik-cli from https://qlik.dev/toolkits/qlik-cli/ and make sure `qlik` is on your PATH.
 
-If `jq` is missing, tell the user:
-> Install jq from https://jqlang.github.io/jq/download/ and make sure `jq` is on your PATH.
+If `qs` is missing, tell the user:
+> Install qs from https://github.com/mattiasthalen/qlik-sync/releases and make sure `qs` is on your PATH.
 
 Stop and wait for the user to install missing tools before continuing.
 
@@ -50,24 +50,6 @@ If output shows an existing context, ask the user:
 
 If they want to reuse it, skip to Step 4.
 
-## Step 2.5: Detect Tenant Type
-
-Based on the server URL:
-- URL contains `.qlikcloud.com` → Cloud tenant
-- Otherwise → On-prem Qlik Sense Enterprise
-
-Confirm with the user:
-> Detected this as a **[Cloud/On-prem]** Qlik tenant. Is that correct?
-
-For **on-prem** tenants:
-- Context creation uses `--server-type Windows --insecure`:
-  ```bash
-  qlik context create <name> --server https://server/jwt --api-key <JWT> --insecure --server-type Windows
-  ```
-- Check for qlik-parser: `which qlik-parser`
-  - If missing: "On-prem sync requires qlik-parser. Download from https://github.com/mattiasthalen/qlik-parser/releases"
-  - Don't block setup — only needed at sync time
-
 ## Step 3: Create Context and Authenticate
 
 Ask the user for their Qlik Cloud tenant URL (e.g., `https://mytenant.us.qlikcloud.com`) and a context name (e.g., their tenant subdomain like `my-tenant`).
@@ -83,9 +65,7 @@ Ask the user for their Qlik Cloud tenant URL (e.g., `https://mytenant.us.qlikclo
 qlik context create <context-name> --server https://<tenant-url> --api-key <API_KEY>
 ```
 
-### Alternative: OAuth Login (on-prem / QSEoW only)
-
-Note: `qlik context login` is for Qlik Sense Enterprise on Windows only. For Qlik Cloud, use API key auth above.
+### Alternative: OAuth Login
 
 ```bash
 qlik context create <context-name> --server https://<tenant-url>
@@ -101,8 +81,10 @@ qlik context login
 ## Step 4: Test Connectivity
 
 ### Connectivity test
-- **Cloud:** `qlik app ls --limit 1 --json`
-- **On-prem:** `qlik qrs app ls --json` with `--server-type Windows`
+
+```bash
+qlik app ls --limit 1 --json
+```
 
 Verify the output is valid JSON containing at least one app. Report to the user:
 > Connected successfully! Found apps on your tenant.
@@ -116,12 +98,12 @@ Verify the output is valid JSON containing at least one app. Report to the user:
 ## Step 5: Create Local Workspace
 
 ```bash
-mkdir -p .qlik-sync
+mkdir -p qlik
 ```
 
-If `.qlik-sync/config.json` exists:
+If `qlik/config.json` exists:
 - Read existing config
-- If v0.1.0 format (no `version` field or `version: "0.1.0"`), migrate to v0.2.0: wrap existing tenant into `tenants` array, auto-detect type from server URL
+- If v0.1.0 format (no `version` field or `version: "0.1.0"`), migrate to v0.2.0: wrap existing tenant into `tenants` array
 - If v0.2.0 format, append new tenant to `tenants` array
 
 If no existing config, create new:
@@ -133,32 +115,32 @@ If no existing config, create new:
     {
       "context": "<context-name>",
       "server": "<tenant-url>",
-      "type": "<cloud|on-prem>",
+      "type": "cloud",
       "lastSync": null
     }
   ]
 }
 ```
 
-Use the context name and server URL from the `qlik context ls` output. Set type based on the detection from Step 2.5.
+Use the context name and server URL from the `qlik context ls` output.
 
 ## Step 6: Update .gitignore
 
-Check if `.qlik-sync/` is already in `.gitignore`:
+Check if `qlik/` is already in `.gitignore`:
 
 ```bash
-grep -q '.qlik-sync/' .gitignore 2>/dev/null
+grep -q 'qlik/' .gitignore 2>/dev/null
 ```
 
 If not found, append it:
 
 ```bash
-echo '.qlik-sync/' >> .gitignore
+echo 'qlik/' >> .gitignore
 ```
 
-The `.qlik-sync/` directory may contain connection context references and should not be committed.
+The `qlik/` directory may contain connection context references and should not be committed.
 
 ## Done
 
 Report to the user:
-> Qlik setup complete. Your workspace is ready at `.qlik-sync/`. Run `/qlik:sync` to pull apps from your tenant.
+> Qlik setup complete. Your workspace is ready at `qlik/`. Run `/qlik:sync` to pull apps from your tenant.

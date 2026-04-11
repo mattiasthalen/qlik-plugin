@@ -7,17 +7,17 @@ source "$SCRIPT_DIR/helpers.sh"
 
 echo "=== project config tests ==="
 
-# .gitignore includes .qlik-sync/
+# .gitignore includes qlik/
 GITIGNORE=$(cat "$REPO_ROOT/.gitignore")
-assert_contains ".gitignore has .qlik-sync/" "$GITIGNORE" ".qlik-sync/"
+assert_contains ".gitignore has qlik/" "$GITIGNORE" "qlik/"
 
 # justfile has test recipe
 JUSTFILE=$(cat "$REPO_ROOT/justfile")
 assert_contains "justfile has test recipe" "$JUSTFILE" "test"
 
-# devcontainer setup script has qlik-cli install
+# devcontainer setup script has qlik-cli and qs install
 SETUP=$(cat "$REPO_ROOT/scripts/setup-devcontainer.sh")
 assert_contains "devcontainer installs qlik-cli" "$SETUP" "qlik"
-assert_contains "devcontainer installs jq or jq already available" "$SETUP" "jq"
+assert_contains "devcontainer installs qs" "$SETUP" "qs"
 
 test_summary
