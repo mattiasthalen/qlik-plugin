@@ -17,6 +17,7 @@ assert_contains "frontmatter has description" "$SKILL_CONTENT" "description:"
 
 # qs CLI prereq check
 assert_contains "checks for qs binary" "$SKILL_CONTENT" "which qs"
+assert_contains "stops if qs missing" "$SKILL_CONTENT" "Stop and wait"
 
 # qs CLI integration
 assert_contains "mentions qs sync command" "$SKILL_CONTENT" "qs sync"

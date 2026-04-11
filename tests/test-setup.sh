@@ -46,4 +46,7 @@ assert_contains "mentions multi-tenant config" "$CONTENT" "tenants"
 # v0.1.0 migration must set type field
 assert_contains "migration sets type cloud" "$CONTENT" 'type.*cloud'
 
+# v0.2.0 append must not modify existing tenants
+assert_contains "append preserves existing tenants" "$CONTENT" "do not modify existing tenants"
+
 test_summary

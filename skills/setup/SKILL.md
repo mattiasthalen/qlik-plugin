@@ -103,8 +103,8 @@ mkdir -p qlik
 
 If `qlik/config.json` exists:
 - Read existing config
-- If v0.1.0 format (no `version` field or `version: "0.1.0"`), migrate to v0.2.0: wrap existing tenant into `tenants` array, set `"type": "cloud"` (all tenants are cloud since qs only supports cloud)
-- If v0.2.0 format, append new tenant to `tenants` array (ensure each tenant has `"type": "cloud"`)
+- If v0.1.0 format (no `version` field or `version: "0.1.0"`), migrate to v0.2.0: wrap existing tenant into `tenants` array, set `"type": "cloud"` for the migrated entry
+- If v0.2.0 format, append the new tenant with `"type": "cloud"` — do not modify existing tenants
 
 If no existing config, create new:
 
