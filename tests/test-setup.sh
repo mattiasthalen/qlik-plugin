@@ -29,24 +29,47 @@ FRONTMATTER=$(sed -n '/^---$/,/^---$/p' "$SETUP_SKILL")
 assert_contains "frontmatter has name" "$FRONTMATTER" "name: setup"
 assert_contains "frontmatter has description" "$FRONTMATTER" "description:"
 
-# Content checks — skill should teach these key behaviors
+# Content checks — skill delegates to qs setup and keeps only prereqs + .gitignore + hand-off
 CONTENT=$(cat "$SETUP_SKILL")
-assert_contains "mentions qlik prerequisite" "$CONTENT" "which qlik"
-assert_contains "mentions qs prerequisite" "$CONTENT" "which qs"
-assert_contains "mentions context create" "$CONTENT" "qlik context create"
-assert_contains "mentions context login" "$CONTENT" "qlik context login"
-assert_contains "mentions connectivity test" "$CONTENT" "qlik app ls"
+assert_contains "probes local qs.exe" "$CONTENT" "./qs.exe"
+assert_contains "probes local qs" "$CONTENT" "./qs"
+assert_contains "falls back to PATH" "$CONTENT" "command -v qs"
+assert_contains "prepends PWD to PATH" "$CONTENT" 'PATH="$PWD:$PATH"'
+assert_contains "delegates to qs setup" "$CONTENT" "qs setup"
 assert_contains "mentions qlik directory" "$CONTENT" "qlik/"
 assert_contains "mentions config.json" "$CONTENT" "config.json"
 assert_contains "mentions .gitignore" "$CONTENT" ".gitignore"
+assert_contains "mentions auto-resume to sync" "$CONTENT" "sync"
 
-# Multi-tenant config check (cloud-only)
-assert_contains "mentions multi-tenant config" "$CONTENT" "tenants"
+# Negative assertions — old manual flow must be gone
+if echo "$CONTENT" | grep -q "qlik context create"; then
+  echo "  FAIL: should not drive qlik context create manually"
+  TESTS_RUN=$((TESTS_RUN + 1))
+  TESTS_FAILED=$((TESTS_FAILED + 1))
+else
+  echo "  PASS: does not drive qlik context create manually"
+  TESTS_RUN=$((TESTS_RUN + 1))
+  TESTS_PASSED=$((TESTS_PASSED + 1))
+fi
 
-# v0.1.0 migration must set type field
-assert_contains "migration sets type cloud" "$CONTENT" 'type.*cloud'
+if echo "$CONTENT" | grep -q "qlik context login"; then
+  echo "  FAIL: should not mention qlik context login"
+  TESTS_RUN=$((TESTS_RUN + 1))
+  TESTS_FAILED=$((TESTS_FAILED + 1))
+else
+  echo "  PASS: does not mention qlik context login"
+  TESTS_RUN=$((TESTS_RUN + 1))
+  TESTS_PASSED=$((TESTS_PASSED + 1))
+fi
 
-# v0.2.0 append must not modify existing tenants
-assert_contains "append preserves existing tenants" "$CONTENT" "do not modify existing tenants"
+if echo "$CONTENT" | grep -q "qlik app ls"; then
+  echo "  FAIL: should not run qlik app ls directly"
+  TESTS_RUN=$((TESTS_RUN + 1))
+  TESTS_FAILED=$((TESTS_FAILED + 1))
+else
+  echo "  PASS: does not run qlik app ls directly"
+  TESTS_RUN=$((TESTS_RUN + 1))
+  TESTS_PASSED=$((TESTS_PASSED + 1))
+fi
 
 test_summary

@@ -2,15 +2,15 @@
 name: setup
 description: >
   Use when the user says "set up qlik", "configure qlik", "connect to
-  my qlik tenant", or wants to connect Claude to their Qlik Cloud
-  environment. Also use when qlik-cli auth fails or tenant connection
-  needs troubleshooting.
+  my qlik tenant", or wants to connect Claude to their Qlik tenant.
+  Also use when a qs setup run fails or tenant connection needs
+  troubleshooting.
 allowed-tools:
-  - Bash(which:*)
-  - Bash(qlik context:*)
-  - Bash(qlik app ls:*)
-  - Bash(qlik version:*)
-  - Bash(mkdir:*)
+  - Bash(command:*)
+  - Bash(test:*)
+  - Bash(qs setup:*)
+  - Bash(./qs setup:*)
+  - Bash(./qs.exe setup:*)
   - Bash(grep:*)
   - Read
   - Write
@@ -18,127 +18,81 @@ allowed-tools:
 
 # Qlik Setup
 
-Set up a Qlik Cloud connection so Claude can sync and inspect apps locally.
+Configure a Qlik tenant connection so Claude can sync and inspect apps locally. This skill is a thin wrapper around `qs setup`, which owns the interactive flow (context creation, cloud/on-prem detection, connectivity test, and `qlik/config.json` writes).
 
-## Step 1: Check Prerequisites
+## Step 1: Locate qs
 
-Verify both tools are installed:
-
-```bash
-which qlik
-which qs
-```
-
-If `qlik` is missing, tell the user:
-> Install qlik-cli from https://qlik.dev/toolkits/qlik-cli/ and make sure `qlik` is on your PATH.
-
-If `qs` is missing, tell the user:
-> Install qs from https://github.com/mattiasthalen/qlik-sync/releases and make sure `qs` is on your PATH.
-
-Stop and wait for the user to install missing tools before continuing.
-
-## Step 2: Check for Existing Context
+Probe for a `qs` binary in priority order — project-local first, then PATH — and prepend the project directory to `PATH` so a project-local `qlik` / `qlik.exe` is also discoverable when `qs` shells out:
 
 ```bash
-qlik context ls
+if [ -x ./qs.exe ]; then
+  QS=./qs.exe
+elif [ -x ./qs ]; then
+  QS=./qs
+elif command -v qs > /dev/null 2>&1; then
+  QS=qs
+else
+  echo "qs not found." >&2
+  echo "Install from https://github.com/mattiasthalen/qlik-sync/releases or drop qs / qs.exe next to this project." >&2
+  exit 1
+fi
+export PATH="$PWD:$PATH"
 ```
 
-Note: `qlik context ls` outputs a table by default (not JSON). Look for the row marked with `*` in the `current` column to identify the active context.
+If the probe fails, stop and wait for the user to install `qs` (or drop it into the project folder) before continuing. `qs setup` checks for `qlik-cli` internally and reports its own error if it is also missing.
 
-If output shows an existing context, ask the user:
-> You already have a qlik context configured: `<context-name>` pointing to `<server>`. Do you want to use this one, or create a new context?
+## Step 2: Run qs setup
 
-If they want to reuse it, skip to Step 4.
-
-## Step 3: Create Context and Authenticate
-
-Ask the user for their Qlik Cloud tenant URL (e.g., `https://mytenant.us.qlikcloud.com`) and a context name (e.g., their tenant subdomain like `my-tenant`).
-
-### API Key Auth (recommended for Qlik Cloud)
-
-1. Ask the user to generate an API key at `https://<tenant-url>/settings/api-keys`
-   - Requires the "Manage API keys" permission (Developer role or custom role)
-   - The key is only shown once — copy it immediately
-2. Create the context with the key:
+Run `qs setup` in the foreground so the user can answer its prompts directly in their terminal:
 
 ```bash
-qlik context create <context-name> --server https://<tenant-url> --api-key <API_KEY>
+"$QS" setup
 ```
 
-### Alternative: OAuth Login
+`qs setup` will:
 
-```bash
-qlik context create <context-name> --server https://<tenant-url>
-qlik context login
-```
+- List existing qlik contexts
+- Prompt for a context name and server URL
+- Detect cloud vs on-prem from the URL
+- Prompt for an API key if the context does not already exist
+- Create the qlik context (with `--server-type Windows --insecure` for on-prem)
+- Set the context active
+- Run a connectivity test (list one app for cloud, `qlik qrs app count` for on-prem)
+- Write or update `qlik/config.json` in v0.2.0 format (appending to `tenants`, preserving existing entries)
 
-### Troubleshooting Auth
+Do not pipe stdin. Let the user interact with `qs setup` directly.
 
-- **API key gives 401:** Key may have expired. Generate a new one at `/settings/api-keys`.
-- **"Manage API keys" not available:** Enable API keys in Management Console → Settings → Feature Control, or add the permission via a custom role.
-- **Wrong tenant:** Run `qlik context ls` to verify the server URL, then recreate the context with the correct URL.
+## Step 3: Verify
 
-## Step 4: Test Connectivity
+After `qs setup` exits 0, read `qlik/config.json` and report the tenant list to the user:
 
-### Connectivity test
+> Setup complete. Configured tenants: `<context-name-1>`, `<context-name-2>`, ...
 
-```bash
-qlik app ls --limit 1 --json
-```
+If `qs setup` exits non-zero, surface its stderr verbatim and suggest common causes:
 
-Verify the output is valid JSON containing at least one app. Report to the user:
-> Connected successfully! Found apps on your tenant.
+- API key expired → regenerate at `https://<tenant-url>/settings/api-keys`
+- Wrong tenant URL → re-run `qs setup` with the correct URL
+- Network error → check VPN, proxy, and that the tenant URL is reachable
 
-### Troubleshooting Connectivity
+## Step 4: Update .gitignore
 
-- **401 Unauthorized:** Auth token may have expired. Run `qlik context login` again.
-- **Network error / timeout:** Check VPN connection, proxy settings, and that the tenant URL is correct.
-- **Empty result `[]`:** The connection works but you may not have access to any apps. Check your Qlik Cloud permissions.
-
-## Step 5: Create Local Workspace
-
-```bash
-mkdir -p qlik
-```
-
-If `qlik/config.json` exists:
-- Read existing config
-- If v0.1.0 format (no `version` field or `version: "0.1.0"`), migrate to v0.2.0: wrap existing tenant into `tenants` array, set `"type": "cloud"` for the migrated entry
-- If v0.2.0 format, append the new tenant with `"type": "cloud"` — do not modify existing tenants
-
-If no existing config, create new:
-
-```json
-{
-  "version": "0.2.0",
-  "tenants": [
-    {
-      "context": "<context-name>",
-      "server": "<tenant-url>",
-      "type": "cloud",
-      "lastSync": null
-    }
-  ]
-}
-```
-
-Use the context name and server URL from the `qlik context ls` output.
-
-## Step 6: Update .gitignore
-
-Check if `qlik/` is already in `.gitignore`:
+Check whether `qlik/` is already ignored:
 
 ```bash
 grep -q 'qlik/' .gitignore 2>/dev/null
 ```
 
-If not found, append it:
+If the grep exits non-zero, append it:
 
 ```bash
 echo 'qlik/' >> .gitignore
 ```
 
-The `qlik/` directory may contain connection context references and should not be committed.
+The `qlik/` directory contains connection context references and should not be committed.
+
+## Step 5: Auto-resume to sync
+
+If setup was triggered as a prerequisite for sync (the user's original intent was to sync), invoke the `sync` skill automatically after this step completes. Do not ask the user to re-invoke `/qlik:sync`.
 
 ## Done
 
