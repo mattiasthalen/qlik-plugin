@@ -32,21 +32,43 @@ skills/inspect/SKILL.md ──► unchanged
 
 Plugin owns only what `qs` does not:
 
-- Prereq check (`which qs`) — `qs setup` calls `CheckPrerequisites()` for `qlik` itself, so the plugin does not need to check `qlik`.
+- Binary discovery — find `qs` (and indirectly `qlik`) whether they sit on `PATH` or next to the project.
 - `.gitignore` append — `qs setup` writes to `qlik/config.json` but does not touch git.
 - Natural-language → `qs sync` flag translation — the intent table stays in the sync skill.
 - Orchestration hand-offs — if the user's original intent was to sync and setup ran as a prereq, auto-resume the sync after setup returns.
 
 `qs` owns: qlik context creation, cloud/on-prem detection, connectivity test, `qlik/config.json` read / write / migrate.
 
+### Binary discovery
+
+Both skills use the same shell snippet to pick a `qs` binary and prepare the environment:
+
+```bash
+if [ -x ./qs.exe ]; then
+  QS=./qs.exe
+elif [ -x ./qs ]; then
+  QS=./qs
+elif command -v qs > /dev/null 2>&1; then
+  QS=qs
+else
+  echo "qs not found. Install from https://github.com/mattiasthalen/qlik-sync/releases or drop qs / qs.exe next to this project." >&2
+  exit 1
+fi
+export PATH="$PWD:$PATH"
+```
+
+Order: local Windows binary, then local Unix binary, then anything on `PATH`. The `export PATH="$PWD:$PATH"` matters because `qs` invokes `qlik` / `qlik.exe` via Go's `exec.LookPath`, which only searches `PATH`. Prepending `$PWD` lets `qs` pick up a project-local `qlik` binary the same way the skill picks up a project-local `qs`.
+
+Skills then invoke `"$QS" setup` or `"$QS" sync ...` — never a bare `qs`. The snippet lives at the top of both skill bodies so the read-through is obvious.
+
 ## Components
 
 ### 1. `skills/setup/SKILL.md` (rewrite)
 
-Target length ~30 lines of body plus frontmatter. Flow:
+Target length ~40 lines of body plus frontmatter. Flow:
 
-1. **Prereqs.** Run `which qs`. If missing, tell the user to install from `https://github.com/mattiasthalen/qlik-sync/releases` and stop. Do not check `which qlik` — `qs setup` does it internally and reports its own error.
-2. **Run `qs setup`.** Execute `qs setup` in the foreground so the user can answer its interactive prompts directly in their terminal. Claude does not pipe stdin.
+1. **Prereqs and binary discovery.** Run the binary-discovery snippet (see Architecture → Binary discovery). If no `qs` is found locally or on PATH, tell the user to install from `https://github.com/mattiasthalen/qlik-sync/releases` or drop the binary next to the project, and stop. Do not check for `qlik` separately — `qs setup` does it internally and reports its own error, and the snippet already prepends `$PWD` to `PATH` so a project-local `qlik` is discoverable.
+2. **Run `qs setup`.** Execute `"$QS" setup` in the foreground so the user can answer its interactive prompts directly in their terminal. Claude does not pipe stdin.
 3. **Verify.** After `qs setup` exits 0, read `qlik/config.json` and report the tenant list to the user.
 4. **`.gitignore`.** Run `grep -q 'qlik/' .gitignore`. If absent, append `qlik/`.
 5. **Auto-resume.** If the user's original intent was to sync and setup ran as a prereq, invoke the sync skill.
@@ -58,20 +80,28 @@ Dropped from the old skill: API-key auth walkthrough, OAuth alt, `qlik context l
 
 ```yaml
 allowed-tools:
-  - Bash(which:*)
+  - Bash(command:*)
+  - Bash(test:*)
   - Bash(qs setup:*)
+  - Bash(./qs setup:*)
+  - Bash(./qs.exe setup:*)
   - Bash(grep:*)
   - Read
   - Write
 ```
 
-Drops from current allow-list: `Bash(qlik context:*)`, `Bash(qlik app ls:*)`, `Bash(qlik version:*)`, `Bash(mkdir:*)`.
+Drops from current allow-list: `Bash(which:*)`, `Bash(qlik context:*)`, `Bash(qlik app ls:*)`, `Bash(qlik version:*)`, `Bash(mkdir:*)`. Adds `Bash(command:*)` (portable replacement for `which`) and `Bash(./qs setup:*)` / `Bash(./qs.exe setup:*)` for project-local binaries.
 
 **Frontmatter `description`:** keep the existing phrasing ("Use when the user says 'set up qlik', …") but drop the Qlik-Cloud-specific language. Generic wording covers both cloud and on-prem.
 
 ### 2. `skills/sync/SKILL.md` (surgical edits)
 
-Four in-place edits, no restructure:
+Five in-place edits plus an allow-list tweak, no restructure:
+
+**Edit 0 — prereq section.** Replace the current `which qs` block with the binary-discovery snippet from Architecture → Binary discovery. Store the chosen binary in `$QS` and prepend `$PWD` to `PATH`. Subsequent `qs sync` invocations in the skill body use `"$QS" sync ...`.
+
+**Edit 0b — `allowed-tools`.** Add `Bash(./qs sync:*)` and `Bash(./qs.exe sync:*)` alongside the existing `Bash(qs sync:*)`. Add `Bash(command:*)` and `Bash(test:*)`. Drop `Bash(which:*)`.
+
 
 **Edit A — line 84 (troubleshooting entry).** Replace:
 
@@ -94,13 +124,13 @@ with:
 
 **Edit C — `--stream` stays out of the intent table.** Do not add a row. `qs` parses the flag but skips on-prem execution, so exposing it would mislead users.
 
-**Edit D — Step 2 command template.** Update the command line to mention the new flags:
+**Edit D — Step 2 command template.** Update the command line to use `$QS` and mention the new flags:
 
 ```bash
-qs sync [--space "..."] [--app "..."] [--id "..."] [--tenant "..."] [--threads N] [--retries N] [--force]
+"$QS" sync [--space "..."] [--app "..."] [--id "..."] [--tenant "..."] [--threads N] [--retries N] [--force]
 ```
 
-Leave the allow-list, prereq section, exit-code handling, and output-structure section unchanged.
+Leave exit-code handling and the output-structure section unchanged.
 
 ### 3. `.claude-plugin/plugin.json`
 
@@ -147,7 +177,8 @@ user → /qlik:sync <natural language>
 
 ## Error handling
 
-- **`qs` missing.** Setup skill stops with install link before running `qs setup`.
+- **`qs` missing.** Setup and sync skills stop with an install-or-drop-locally hint before running `qs setup` / `qs sync`. The hint points at the releases page and mentions the project-local fallback.
+- **`qlik` missing.** `qs setup` internally calls `CheckPrerequisites()` for `qlik` and prints its own error. Because the plugin already prepended `$PWD` to `PATH`, a project-local `qlik` / `qlik.exe` is picked up automatically. No plugin-side check for `qlik`.
 - **`qs setup` non-zero exit.** Surface stderr verbatim. Do not second-guess `qs`'s error message. Suggest: regenerate API key, verify tenant URL, check network / VPN / proxy.
 - **`qlik/config.json` missing after `qs setup` 0-exit.** Should be impossible (`qs setup` writes it before returning 0). If it happens, report as a bug in `qs`, do not attempt to write config.json from the plugin.
 - **`.gitignore` missing.** Create it with a single `qlik/` line.
