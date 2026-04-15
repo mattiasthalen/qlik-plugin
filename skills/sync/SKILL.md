@@ -7,9 +7,12 @@ description: >
   failed partway and needs to resume, or when apps need re-syncing
   after changes on the tenant.
 allowed-tools:
+  - Bash(command:*)
+  - Bash(test:*)
   - Bash(qs sync:*)
+  - Bash(./qs sync:*)
+  - Bash(./qs.exe sync:*)
   - Bash(qs version:*)
-  - Bash(which:*)
   - Read
 ---
 
@@ -19,19 +22,27 @@ Pull apps from Qlik Cloud tenants to a local `qlik/` working copy using the `qs`
 
 ## Prerequisites
 
-Check that `qs` is installed:
+Probe for a `qs` binary in priority order — project-local first, then PATH — and prepend the project directory to `PATH` so `qs` can discover a project-local `qlik` / `qlik.exe` too. The probe and the sync invocation must run in one Bash call so `$QS` survives:
 
 ```bash
-which qs
+if [ -x ./qs.exe ]; then
+  QS=./qs.exe
+elif [ -x ./qs ]; then
+  QS=./qs
+elif command -v qs > /dev/null 2>&1; then
+  QS=qs
+else
+  echo "qs not found." >&2
+  echo "Install from https://github.com/mattiasthalen/qlik-sync/releases or drop qs / qs.exe next to this project." >&2
+  exit 1
+fi
+export PATH="$PWD:$PATH"
 ```
 
-If missing, tell the user:
-> Install qs from https://github.com/mattiasthalen/qlik-sync/releases and make sure `qs` is on your PATH.
-
-Stop and wait for the user to install `qs` before continuing.
+If the probe fails, stop and wait for the user to install `qs` (or drop it into the project folder) before continuing.
 
 Check that `qlik/config.json` exists. If not, tell the user:
-> Run `/qlik:setup` first to configure your Qlik Cloud connection.
+> Run `/qlik:setup` first to configure your Qlik tenant.
 
 **Auto-resume after setup:** If setup was triggered as a prerequisite for sync (i.e., the user's original intent was to sync), resume the sync automatically after setup completes. Do not ask the user to re-invoke `/qlik:sync`.
 
@@ -47,13 +58,17 @@ Translate the user's request into `qs sync` flags:
 | "sync 204be326-..." | `--id 204be326-...` |
 | "force re-sync" / "re-download everything" | `--force` |
 | "sync my-cloud tenant" | `--tenant "context-name"` |
+| "use 10 threads" / "more parallelism" | `--threads 10` |
+| "retry 5 times" / "more retries" | `--retries 5` |
 
 Flags can be combined: `--space "Finance Prod" --force`
 
 ## Step 2: Run qs sync
 
+Run in the same Bash invocation as the probe above so `$QS` is still in scope:
+
 ```bash
-qs sync [--space "..."] [--app "..."] [--id "..."] [--tenant "..."] [--force]
+"$QS" sync [--space "..."] [--app "..."] [--id "..."] [--tenant "..."] [--threads N] [--retries N] [--force]
 ```
 
 The `qs` CLI handles:
@@ -81,7 +96,7 @@ If exit code 2, list which apps failed from the output and suggest:
 
 - **"config.json not found"** → suggest running `/qlik:setup`
 - **401/auth errors** → suggest re-authenticating: `qlik context login`
-- **"Skipping on-prem tenant"** → `qs` does not yet support on-prem sync. Cloud tenants work normally.
+- **"Skipping on-prem tenant"** → `qs sync` currently skips on-prem tenants with a warning; cloud tenants in the same config continue to sync normally. On-prem sync is on the qs roadmap.
 - **Network errors** → check VPN/proxy and tenant URL
 
 ## Output Structure
