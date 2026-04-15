@@ -48,3 +48,16 @@
 - **1.0.0 (major)** *(rejected)* — Premature; the plugin's public contract (skill names, config.json format) is unchanged.
 
 **Decision:** Bump to 0.5.0.
+
+## Decision 5: Binary discovery order for `qs` and `qlik`
+
+**Context:** Users may drop `qs.exe` / `qs` and `qlik.exe` / `qlik` next to their project instead of installing them globally, especially on Windows where adding to PATH is clunkier. A `which qs` prereq check only inspects PATH and would miss a project-local binary. `qs` itself calls `exec.Command("qlik", ...)` via Go's `LookPath`, which also searches PATH, so even if the skill finds a local `qs`, `qs` will fail to invoke `qlik` unless the project folder is prepended to `PATH` for the duration of the call.
+
+**Options considered:**
+
+- **Prefer local binary, fall back to PATH, prepend project folder to PATH for the call** *(chosen)* — Setup and sync skills probe for `./qs.exe`, then `./qs`, then a PATH-resident `qs`. Whichever is found is stored in a shell variable and invoked with `PATH="$PWD:$PATH"` so `qs` can pick up `qlik` / `qlik.exe` from the project folder too. Plugin stays a wrapper; no binary is bundled.
+- **PATH only, document project-local as unsupported** *(rejected)* — Simplest skill, but breaks the drop-in-project workflow that Windows users commonly rely on.
+- **PATH first, fall back to local binary** *(rejected)* — Inverts intent. If a user drops a local binary it is almost always because they want to pin a specific version; PATH-first would hide it.
+- **Let `qs` handle it — skip the prereq check** *(rejected)* — Loses the install-link hint when the binary is missing and gives worse error messages.
+
+**Decision:** Prefer local, then PATH, and always prepend `$PWD` to `PATH` when invoking `qs` so child `qlik` calls discover project-local binaries too. Apply to both setup and sync skills.
