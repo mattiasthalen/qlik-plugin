@@ -20,9 +20,9 @@ allowed-tools:
 
 Configure a Qlik tenant connection so Claude can sync and inspect apps locally. This skill is a thin wrapper around `qs setup`, which owns the interactive flow (context creation, cloud/on-prem detection, connectivity test, and `qlik/config.json` writes).
 
-## Step 1: Locate qs
+## Step 1: Prepare and run qs setup
 
-Probe for a `qs` binary in priority order — project-local first, then PATH — and prepend the project directory to `PATH` so a project-local `qlik` / `qlik.exe` is also discoverable when `qs` shells out:
+Probe for a `qs` binary in priority order — project-local first, then PATH — prepend the project directory to `PATH` so a project-local `qlik` / `qlik.exe` is also discoverable when `qs` shells out, then hand control to `qs setup`. Run the whole thing as one command so `$QS` lives long enough to reach the invocation:
 
 ```bash
 if [ -x ./qs.exe ]; then
@@ -37,32 +37,14 @@ else
   exit 1
 fi
 export PATH="$PWD:$PATH"
-```
-
-If the probe fails, stop and wait for the user to install `qs` (or drop it into the project folder) before continuing. `qs setup` checks for `qlik-cli` internally and reports its own error if it is also missing.
-
-## Step 2: Run qs setup
-
-Run `qs setup` in the foreground so the user can answer its prompts directly in their terminal:
-
-```bash
 "$QS" setup
 ```
 
-`qs setup` will:
+`qs setup` is interactive — it prints existing contexts, prompts for name / URL / API key, detects cloud vs on-prem, creates the qlik context, runs a connectivity test, and writes `qlik/config.json`. See `qs setup --help` for up-to-date details. Do not pipe stdin; let the user answer the prompts in their terminal.
 
-- List existing qlik contexts
-- Prompt for a context name and server URL
-- Detect cloud vs on-prem from the URL
-- Prompt for an API key if the context does not already exist
-- Create the qlik context (with `--server-type Windows --insecure` for on-prem)
-- Set the context active
-- Run a connectivity test (list one app for cloud, `qlik qrs app count` for on-prem)
-- Write or update `qlik/config.json` in v0.2.0 format (appending to `tenants`, preserving existing entries)
+If the probe fails, stop and wait for the user to install `qs` (or drop it into the project folder) before continuing. `qs setup` checks for `qlik-cli` internally and reports its own error if it is also missing.
 
-Do not pipe stdin. Let the user interact with `qs setup` directly.
-
-## Step 3: Verify
+## Step 2: Verify
 
 After `qs setup` exits 0, read `qlik/config.json` and report the tenant list to the user:
 
@@ -74,7 +56,7 @@ If `qs setup` exits non-zero, surface its stderr verbatim and suggest common cau
 - Wrong tenant URL → re-run `qs setup` with the correct URL
 - Network error → check VPN, proxy, and that the tenant URL is reachable
 
-## Step 4: Update .gitignore
+## Step 3: Update .gitignore
 
 Check whether `qlik/` is already ignored:
 
@@ -90,7 +72,7 @@ echo 'qlik/' >> .gitignore
 
 The `qlik/` directory contains connection context references and should not be committed.
 
-## Step 5: Auto-resume to sync
+## Step 4: Auto-resume to sync
 
 If setup was triggered as a prerequisite for sync (the user's original intent was to sync), invoke the `sync` skill automatically after this step completes. Do not ask the user to re-invoke `/qlik:sync`.
 
